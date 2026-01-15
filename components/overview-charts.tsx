@@ -1,60 +1,55 @@
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from "recharts"
-import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart"
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Pie, PieChart, Cell } from "recharts"
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart"
+
+const chartConfig = {
+  amount: { label: "Gasto", color: "hsl(var(--chart-1))" },
+  flight: { label: "Voos", color: "hsl(var(--chart-1))" },
+  hotel: { label: "Hotéis", color: "hsl(var(--chart-2))" },
+  car: { label: "Carros", color: "hsl(var(--chart-3))" },
+} satisfies ChartConfig
 
 export default function OverviewCharts({ data }: { data: any }) {
-  const categoryData = [
-    { name: "Voos", value: data.spendByCategory.flight, fill: "var(--color-chart-1)" },
-    { name: "Hoteis", value: data.spendByCategory.hotel, fill: "var(--color-chart-2)" },
-    { name: "Carros", value: data.spendByCategory.car, fill: "var(--color-chart-3)" },
-  ].filter((d) => d.value > 0)
-
-  const chartConfig = {
-    spend: { label: "Gasto", color: "var(--color-chart-1)" },
-    flight: { label: "Voos", color: "var(--color-chart-1)" },
-    hotel: { label: "Hoteis", color: "var(--color-chart-2)" },
-    car: { label: "Carros", color: "var(--color-chart-3)" },
-  }
+  // Cores dinâmicas para o PieChart baseadas no config
+  const pieData = data.categoryStats.map((item: any) => ({
+    ...item,
+    fill: chartConfig[item.category as keyof typeof chartConfig]?.color || "gray"
+  }))
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
-      <Card>
+      <Card className="flex flex-col">
         <CardHeader>
-          <CardTitle>Gastos Mensais</CardTitle>
-          <CardDescription>Despesas de viagem nos últimos 5 meses</CardDescription>
+          <CardTitle>Gastos por Categoria</CardTitle>
+          <CardDescription>Distribuição de custos aprovados</CardDescription>
         </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig} className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data.monthlySpend}>
-                <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={12} />
-                <YAxis tickLine={false} axisLine={false} fontSize={12} tickFormatter={(v) => `R$${v}`} />
-                <Tooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="spend" fill="var(--color-chart-1)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+        <CardContent className="flex-1 pb-0">
+          <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[250px]">
+            <PieChart>
+              <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+              <Pie data={pieData} dataKey="amount" nameKey="label" innerRadius={60} strokeWidth={5} />
+              <ChartLegend content={<ChartLegendContent nameKey="label" />} className="-translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center" />
+            </PieChart>
           </ChartContainer>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Gastos por Categoria</CardTitle>
-          <CardDescription>Distribuição das despesas aprovadas</CardDescription>
+          <CardTitle>Histórico Mensal</CardTitle>
+          <CardDescription>Evolução dos gastos corporativos</CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={chartConfig} className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={categoryData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} dataKey="value">
-                  {categoryData.map((entry, index) => <Cell key={index} fill={entry.fill} />)}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+          <ChartContainer config={chartConfig} className="h-[250px] w-full">
+            <BarChart data={data.monthlyHistory}>
+              <CartesianGrid vertical={false} strokeDasharray="3 3" />
+              <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} />
+              <YAxis tickFormatter={(value) => `R$${value}`} hide />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Bar dataKey="total" fill="var(--color-amount)" radius={8} />
+            </BarChart>
           </ChartContainer>
         </CardContent>
       </Card>

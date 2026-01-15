@@ -15,7 +15,7 @@ import { RequestTypeIcon } from "@/components/request-type-icon"
 import { ArrowLeft, Plane, Building2, Car, Check, Sparkles, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { searchOptionsAction, createTravelRequestAction } from "@/app/actions/travel-requests"
-import { type TravelOption } from "@/lib/amadeus"
+import { type TravelOption } from "@/lib/travel-api"
 
 export default function NewRequestPage() {
   const router = useRouter()

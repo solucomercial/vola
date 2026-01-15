@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { travelRequests } from "@/db/schema";
-import { fetchFlightOffers } from "@/lib/amadeus";
+import { fetchFlightOffers } from "@/lib/travel-api";
 import { revalidatePath } from "next/cache";
 
 // 1. Action para buscar opções reais de voo
