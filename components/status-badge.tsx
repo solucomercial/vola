@@ -11,9 +11,9 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
     RequestStatus,
     { variant: "default" | "secondary" | "destructive" | "outline"; label: string }
   > = {
-    pending: { variant: "secondary", label: "Pending" },
-    approved: { variant: "default", label: "Approved" },
-    rejected: { variant: "destructive", label: "Rejected" },
+    pending: { variant: "secondary", label: "Pendente" },
+    approved: { variant: "default", label: "Aprovada" },
+    rejected: { variant: "destructive", label: "Rejeitada" },
   }
 
   const { variant, label } = variants[status]

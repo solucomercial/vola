@@ -33,10 +33,10 @@ import {
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["requester", "approver", "admin"] },
-  { name: "Requests", href: "/requests", icon: FileText, roles: ["requester", "approver", "admin"] },
-  { name: "Analysis", href: "/analysis", icon: ClipboardCheck, roles: ["approver", "admin"] },
-  { name: "Notifications", href: "/notifications", icon: Bell, roles: ["requester", "approver", "admin"] },
-  { name: "Overview", href: "/overview", icon: BarChart3, roles: ["approver", "admin"] },
+  { name: "Solicitações", href: "/requests", icon: FileText, roles: ["requester", "approver", "admin"] },
+  { name: "Análise", href: "/analysis", icon: ClipboardCheck, roles: ["approver", "admin"] },
+  { name: "Notificações", href: "/notifications", icon: Bell, roles: ["requester", "approver", "admin"] },
+  { name: "Visão Geral", href: "/overview", icon: BarChart3, roles: ["approver", "admin"] },
 ]
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -94,8 +94,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <Plane className="h-5 w-5 text-primary-foreground" />
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-semibold text-foreground">Soluções</span>
-              <span className="text-xs text-muted-foreground">Corporate Travel</span>
+              <span className="text-sm font-semibold text-foreground">Soluções Serviços Terceirizados</span>
+              <span className="text-xs text-muted-foreground">Plataforma de Viagens</span>
             </div>
             <Button variant="ghost" size="icon" className="ml-auto lg:hidden" onClick={() => setSidebarOpen(false)}>
               <X className="h-5 w-5" />
@@ -153,7 +153,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Switch Role (Demo)</DropdownMenuLabel>
+                <DropdownMenuLabel>Mudar de função (Demo)</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {users.map((user) => (
                   <DropdownMenuItem
@@ -181,7 +181,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 <DropdownMenuItem asChild>
                   <Link href="/" className="flex items-center gap-2">
                     <LogOut className="h-4 w-4" />
-                    Sign Out
+                    Sair
                   </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>

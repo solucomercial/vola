@@ -45,10 +45,10 @@ export default function OverviewPage() {
 
     // Monthly spend (mock data for visualization)
     const monthlySpend = [
-      { month: "Sep", spend: 4200 },
-      { month: "Oct", spend: 5800 },
+      { month: "Set", spend: 4200 },
+      { month: "Out", spend: 5800 },
       { month: "Nov", spend: 3900 },
-      { month: "Dec", spend: 6200 },
+      { month: "Dez", spend: 6200 },
       { month: "Jan", spend: totalApprovedCost || 4500 },
     ]
 
@@ -67,9 +67,9 @@ export default function OverviewPage() {
   }, [requests])
 
   const categoryData = [
-    { name: "Flights", value: metrics.spendByCategory.flight, fill: "var(--color-chart-1)" },
-    { name: "Hotels", value: metrics.spendByCategory.hotel, fill: "var(--color-chart-2)" },
-    { name: "Car Rental", value: metrics.spendByCategory.car, fill: "var(--color-chart-3)" },
+    { name: "Voos", value: metrics.spendByCategory.flight, fill: "var(--color-chart-1)" },
+    { name: "Hoteis", value: metrics.spendByCategory.hotel, fill: "var(--color-chart-2)" },
+    { name: "Locação de Carros", value: metrics.spendByCategory.car, fill: "var(--color-chart-3)" },
   ].filter((d) => d.value > 0)
 
   const chartConfig = {
@@ -78,15 +78,15 @@ export default function OverviewPage() {
       color: "var(--color-chart-1)",
     },
     flight: {
-      label: "Flights",
+      label: "Voos",
       color: "var(--color-chart-1)",
     },
     hotel: {
-      label: "Hotels",
+      label: "Hoteis",
       color: "var(--color-chart-2)",
     },
     car: {
-      label: "Car Rental",
+      label: "Locação de Carros",
       color: "var(--color-chart-3)",
     },
   }
@@ -96,26 +96,26 @@ export default function OverviewPage() {
       <div className="space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Overview & Reports</h1>
-          <p className="text-muted-foreground">Comprehensive analytics for corporate travel</p>
+          <h1 className="text-2xl font-bold text-foreground">Overview & relatórios</h1>
+          <p className="text-muted-foreground">Análises abrangentes para viagens corporativas</p>
         </div>
 
         {/* KPI Cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardDescription>Total Requests</CardDescription>
+              <CardDescription>Total de Solicitações</CardDescription>
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-foreground">{metrics.totalRequests}</div>
-              <p className="text-xs text-muted-foreground mt-1">All time</p>
+              <p className="text-xs text-muted-foreground mt-1">Total</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardDescription>Approved</CardDescription>
+              <CardDescription>Aprovado</CardDescription>
               <TrendingUp className="h-4 w-4 text-emerald-500" />
             </CardHeader>
             <CardContent>
@@ -130,23 +130,23 @@ export default function OverviewPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardDescription>Rejected</CardDescription>
+              <CardDescription>Rejeitado</CardDescription>
               <TrendingDown className="h-4 w-4 text-destructive" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-destructive">{metrics.rejectedCount}</div>
-              <p className="text-xs text-muted-foreground mt-1">Requires revision</p>
+              <p className="text-xs text-muted-foreground mt-1">Requer revisão</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardDescription>Pending</CardDescription>
+              <CardDescription>Pendente</CardDescription>
               <FileText className="h-4 w-4 text-amber-500" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-amber-600">{metrics.pendingCount}</div>
-              <p className="text-xs text-muted-foreground mt-1">Awaiting approval</p>
+              <p className="text-xs text-muted-foreground mt-1">Aguardando aprovação</p>
             </CardContent>
           </Card>
         </div>
@@ -155,38 +155,38 @@ export default function OverviewPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardDescription>Total Approved Cost</CardDescription>
+              <CardDescription>Total de Custos Aprovados</CardDescription>
               <DollarSign className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-foreground">
                 R$ {metrics.totalApprovedCost.toLocaleString("pt-BR")}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">From {metrics.approvedCount} approved requests</p>
+              <p className="text-xs text-muted-foreground mt-1">Para {metrics.approvedCount} solicitações aprovadas</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardDescription>Average Cost per Trip</CardDescription>
+              <CardDescription>Custo médio por viagem</CardDescription>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-foreground">
                 R$ {metrics.averageCostPerTrip.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Per approved request</p>
+              <p className="text-xs text-muted-foreground mt-1">Por solicitação aprovada</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardDescription>Top Destination</CardDescription>
+              <CardDescription>Top Destino</CardDescription>
               <MapPin className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground truncate">{metrics.mostCommonDestination}</div>
-              <p className="text-xs text-muted-foreground mt-1">Most requested location</p>
+              <p className="text-xs text-muted-foreground mt-1">Local mais solicitado</p>
             </CardContent>
           </Card>
         </div>
@@ -196,8 +196,8 @@ export default function OverviewPage() {
           {/* Monthly Spend Chart */}
           <Card>
             <CardHeader>
-              <CardTitle>Monthly Spend</CardTitle>
-              <CardDescription>Travel expenses over the last 5 months</CardDescription>
+              <CardTitle>Gastos Mensais</CardTitle>
+              <CardDescription>Despesas de viagem nos últimos 5 meses</CardDescription>
             </CardHeader>
             <CardContent>
               <ChartContainer config={chartConfig} className="h-[300px] w-full">
@@ -213,7 +213,7 @@ export default function OverviewPage() {
                     />
                     <Tooltip
                       content={<ChartTooltipContent />}
-                      formatter={(value: number) => [`R$ ${value.toLocaleString("pt-BR")}`, "Spend"]}
+                      formatter={(value: number) => [`R$ ${value.toLocaleString("pt-BR")}`, " Gasto"]}
                     />
                     <Bar dataKey="spend" fill="var(--color-chart-1)" radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -225,8 +225,8 @@ export default function OverviewPage() {
           {/* Category Distribution */}
           <Card>
             <CardHeader>
-              <CardTitle>Spend by Category</CardTitle>
-              <CardDescription>Distribution of approved travel expenses</CardDescription>
+              <CardTitle>Gastos por Categoria</CardTitle>
+              <CardDescription>Distribuição das despesas de viagem aprovadas</CardDescription>
             </CardHeader>
             <CardContent>
               {categoryData.length > 0 ? (
@@ -248,14 +248,14 @@ export default function OverviewPage() {
                           <Cell key={`cell-${index}`} fill={entry.fill} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value: number) => [`R$ ${value.toLocaleString("pt-BR")}`, "Amount"]} />
+                      <Tooltip formatter={(value: number) => [`R$ ${value.toLocaleString("pt-BR")}`, "Total"]} />
                       <Legend />
                     </PieChart>
                   </ResponsiveContainer>
                 </ChartContainer>
               ) : (
                 <div className="h-[300px] flex items-center justify-center">
-                  <p className="text-muted-foreground">No approved expenses yet</p>
+                  <p className="text-muted-foreground">Nenhuma despesa aprovada ainda</p>
                 </div>
               )}
             </CardContent>
@@ -271,7 +271,7 @@ export default function OverviewPage() {
                   <Plane className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Flights</p>
+                  <p className="text-sm text-muted-foreground">Voos</p>
                   <p className="text-xl font-bold text-foreground">
                     R$ {metrics.spendByCategory.flight.toLocaleString("pt-BR")}
                   </p>
@@ -287,7 +287,7 @@ export default function OverviewPage() {
                   <Building2 className="h-6 w-6 text-chart-2" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Hotels</p>
+                  <p className="text-sm text-muted-foreground">Hoteis</p>
                   <p className="text-xl font-bold text-foreground">
                     R$ {metrics.spendByCategory.hotel.toLocaleString("pt-BR")}
                   </p>
@@ -303,7 +303,7 @@ export default function OverviewPage() {
                   <Car className="h-6 w-6 text-chart-3" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Car Rental</p>
+                  <p className="text-sm text-muted-foreground">Locação de Carro</p>
                   <p className="text-xl font-bold text-foreground">
                     R$ {metrics.spendByCategory.car.toLocaleString("pt-BR")}
                   </p>
@@ -316,25 +316,25 @@ export default function OverviewPage() {
         {/* Approvals Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Recent Approvals</CardTitle>
-            <CardDescription>Latest approved travel requests</CardDescription>
+            <CardTitle>Aprovações Recentes</CardTitle>
+            <CardDescription>Últimas solicitações de viagem aprovadas</CardDescription>
           </CardHeader>
           <CardContent>
             {metrics.approvedRequests.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8">
-                <p className="text-muted-foreground">No approved requests yet</p>
+                <p className="text-muted-foreground">Nenhuma solicitação aprovada ainda</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Type</TableHead>
-                      <TableHead>User</TableHead>
-                      <TableHead>Destination</TableHead>
-                      <TableHead>Cost</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Usuário</TableHead>
+                      <TableHead>Destino</TableHead>
+                      <TableHead>Custo</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
+                      <TableHead>Data</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

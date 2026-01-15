@@ -14,12 +14,12 @@ export default function HomePage() {
               <Plane className="h-5 w-5 text-primary-foreground" />
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-semibold text-foreground">Soluções</span>
-              <span className="text-xs text-muted-foreground">Corporate Travel</span>
+              <span className="text-sm font-semibold text-foreground">Soluções Serviços Terceirizados</span>
+              <span className="text-xs text-muted-foreground">Plataforma de Viagens</span>
             </div>
           </div>
           <Link href="/dashboard">
-            <Button>Enter Platform</Button>
+            <Button>Entrar na Plataforma</Button>
           </Link>
         </div>
       </header>
@@ -29,20 +29,19 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl text-center">
             <h1 className="text-balance text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-              Corporate Travel Management Platform
+              Plataforma de Gestão de Viagens Corporativas
             </h1>
             <p className="mt-6 text-pretty text-lg text-muted-foreground">
-              Streamline your company travel with automated approval workflows, cost control, and comprehensive
-              reporting. Built for Soluções Serviços Terceirizados.
+              Simplifique as viagens da sua empresa com fluxos de aprovação automatizados, controle de custos e relatórios abrangentes. Desenvolvido para Soluções Serviços Terceirizados.
             </p>
             <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
               <Link href="/dashboard">
                 <Button size="lg" className="w-full sm:w-auto">
-                  Access Dashboard
+                  Acessar Dashboard
                 </Button>
               </Link>
               <Button variant="outline" size="lg" className="w-full sm:w-auto bg-transparent">
-                Learn More
+                Saber mais
               </Button>
             </div>
           </div>
@@ -53,8 +52,8 @@ export default function HomePage() {
       <section className="py-20">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground">Everything You Need</h2>
-            <p className="mt-4 text-muted-foreground">Complete travel management solution for your organization</p>
+            <h2 className="text-3xl font-bold tracking-tight text-foreground">Tudo o que você precisa</h2>
+            <p className="mt-4 text-muted-foreground">Solução completa de gestão de viagens para sua organização</p>
           </div>
 
           <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
@@ -63,9 +62,9 @@ export default function HomePage() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                   <Plane className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-card-foreground">Flight Booking</h3>
+                <h3 className="mt-4 text-lg font-semibold text-card-foreground">Reserva de voo</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Compare flight options from multiple providers and select the best option for your trip.
+                  Compare as opções de voo de diversas companhias aéreas e selecione a melhor opção para a sua viagem.
                 </p>
               </CardContent>
             </Card>
@@ -75,9 +74,9 @@ export default function HomePage() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                   <Building2 className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-card-foreground">Hotel Reservations</h3>
+                <h3 className="mt-4 text-lg font-semibold text-card-foreground">Reservas de hotéis</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Book accommodations with transparent pricing and policy-compliant options.
+                  Reserve acomodações com preços transparentes e opções em conformidade com as políticas.
                 </p>
               </CardContent>
             </Card>
@@ -87,9 +86,9 @@ export default function HomePage() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                   <Car className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-card-foreground">Car Rental</h3>
+                <h3 className="mt-4 text-lg font-semibold text-card-foreground">Locação de Carro</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Rent vehicles at your destination with competitive rates and full insurance options.
+                  Alugue veículos no seu destino com preços competitivos e opções completas de seguro.
                 </p>
               </CardContent>
             </Card>
@@ -99,9 +98,9 @@ export default function HomePage() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                   <CheckCircle2 className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-card-foreground">Approval Workflow</h3>
+                <h3 className="mt-4 text-lg font-semibold text-card-foreground">Fluxo de trabalho de aprovação</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Streamlined approval process with notifications and tracking for all stakeholders.
+                  Processo de aprovação simplificado com notificações e acompanhamento para todas as partes interessadas.
                 </p>
               </CardContent>
             </Card>
@@ -111,9 +110,9 @@ export default function HomePage() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                   <BarChart3 className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-card-foreground">Analytics & Reports</h3>
+                <h3 className="mt-4 text-lg font-semibold text-card-foreground">Análises e relatórios</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Comprehensive reporting on travel spend, trends, and cost optimization opportunities.
+                  Relatórios abrangentes sobre gastos com viagens, tendências e oportunidades de otimização de custos.
                 </p>
               </CardContent>
             </Card>
@@ -123,9 +122,9 @@ export default function HomePage() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                   <Shield className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-card-foreground">Policy Compliance</h3>
+                <h3 className="mt-4 text-lg font-semibold text-card-foreground">Conformidade com a Política</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Ensure all travel requests comply with company policies and budget limits.
+                  Garanta que todas as solicitações de viagem estejam em conformidade com as políticas da empresa e os limites orçamentários.
                 </p>
               </CardContent>
             </Card>

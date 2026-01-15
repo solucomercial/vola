@@ -63,41 +63,41 @@ export default function AnalysisPage() {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Request Analysis</h1>
-          <p className="text-muted-foreground">Review and approve pending travel requests</p>
+          <h1 className="text-2xl font-bold text-foreground">Análise de solicitação</h1>
+          <p className="text-muted-foreground">Analisar e aprovar pedidos de viagem pendentes.</p>
         </div>
 
         {/* Stats */}
         <div className="grid gap-4 sm:grid-cols-3">
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Pending Requests</CardDescription>
+              <CardDescription>Pedidos Pendentes</CardDescription>
               <CardTitle className="text-3xl text-amber-600">{pendingRequests.length}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground">Awaiting your decision</p>
+              <p className="text-xs text-muted-foreground">Aguardando sua decisão</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Total Value</CardDescription>
+              <CardDescription>Valor Total</CardDescription>
               <CardTitle className="text-3xl">
                 R$ {pendingRequests.reduce((sum, r) => sum + r.selectedOption.price, 0).toLocaleString("pt-BR")}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground">Pending approval</p>
+              <p className="text-xs text-muted-foreground">Aprovação pendente</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Potential Savings</CardDescription>
+              <CardDescription>Economia em potencial</CardDescription>
               <CardTitle className="text-3xl text-emerald-600">
                 R$ {pendingRequests.reduce((sum, r) => sum + getPotentialSavings(r), 0).toLocaleString("pt-BR")}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground">By choosing cheapest options</p>
+              <p className="text-xs text-muted-foreground">Escolhendo opções mais baratas</p>
             </CardContent>
           </Card>
         </div>
@@ -107,8 +107,8 @@ export default function AnalysisPage() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <CheckCircle2 className="h-12 w-12 text-emerald-500 mb-4" />
-              <p className="text-lg font-medium text-foreground">All caught up!</p>
-              <p className="text-muted-foreground">No pending requests to review</p>
+              <p className="text-lg font-medium text-foreground">Tudo atualizado!</p>
+              <p className="text-muted-foreground">Nenhuma solicitação pendente para revisar</p>
             </CardContent>
           </Card>
         ) : (
@@ -138,7 +138,7 @@ export default function AnalysisPage() {
                             </div>
                             <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                               <MapPin className="h-3 w-3" />
-                              <span>From {request.origin}</span>
+                              <span>De {request.origin}</span>
                             </div>
                             <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                               <Calendar className="h-3 w-3" />
@@ -168,14 +168,14 @@ export default function AnalysisPage() {
 
                         {/* Reason */}
                         <div className="mt-4">
-                          <p className="text-sm text-muted-foreground">Reason</p>
+                          <p className="text-sm text-muted-foreground">Razão</p>
                           <p className="text-sm font-medium text-foreground">{request.reason}</p>
                         </div>
                       </div>
 
                       {/* Options Comparison */}
                       <div className="border-t lg:border-t-0 lg:border-l border-border bg-secondary/30 p-6 lg:w-96">
-                        <h4 className="text-sm font-semibold text-foreground mb-3">Options Comparison</h4>
+                        <h4 className="text-sm font-semibold text-foreground mb-3">Comparação de opções</h4>
 
                         {/* Selected Option */}
                         <div
@@ -186,7 +186,7 @@ export default function AnalysisPage() {
                               <div className="flex items-center gap-2">
                                 <p className="font-medium text-foreground">{request.selectedOption.provider}</p>
                                 <Badge variant="outline" className="text-xs">
-                                  Selected
+                                  Selecionado
                                 </Badge>
                               </div>
                               <p className="text-xs text-muted-foreground">{request.selectedOption.details}</p>
@@ -209,7 +209,7 @@ export default function AnalysisPage() {
                                 <div>
                                   <div className="flex items-center gap-2">
                                     <p className="font-medium text-foreground">{alt.provider}</p>
-                                    {isCheapest && <Badge className="bg-emerald-600 text-xs">Best Price</Badge>}
+                                    {isCheapest && <Badge className="bg-emerald-600 text-xs">Melhor preço</Badge>}
                                   </div>
                                   <p className="text-xs text-muted-foreground">{alt.details}</p>
                                 </div>
@@ -226,7 +226,7 @@ export default function AnalysisPage() {
                           <div className="mt-3 flex items-center gap-2 rounded-lg bg-amber-100 p-3">
                             <TrendingDown className="h-4 w-4 text-amber-700" />
                             <p className="text-sm text-amber-800">
-                              Save <span className="font-bold">R$ {savings.toLocaleString("pt-BR")}</span> with{" "}
+                              Economize <span className="font-bold">R$ {savings.toLocaleString("pt-BR")}</span> com{" "}
                               {cheapest.provider}
                             </p>
                           </div>
@@ -242,7 +242,7 @@ export default function AnalysisPage() {
                             }}
                           >
                             <CheckCircle2 className="mr-2 h-4 w-4" />
-                            Approve
+                            Aprovar
                           </Button>
                           <Button
                             variant="destructive"
@@ -253,7 +253,7 @@ export default function AnalysisPage() {
                             }}
                           >
                             <XCircle className="mr-2 h-4 w-4" />
-                            Reject
+                            Rejeitar
                           </Button>
                         </div>
                       </div>
@@ -269,9 +269,9 @@ export default function AnalysisPage() {
         <Dialog open={confirmApproveOpen} onOpenChange={setConfirmApproveOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Confirm Approval</DialogTitle>
+              <DialogTitle>Confirmar aprovação</DialogTitle>
               <DialogDescription>
-                You are about to approve this travel request. An approval code will be generated.
+                Você está prestes a aprovar esta solicitação de viagem. Um código de aprovação será gerado.
               </DialogDescription>
             </DialogHeader>
             {selectedRequest && (
@@ -290,17 +290,17 @@ export default function AnalysisPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Requested by {selectedRequest.userName}</span>
+                  <span className="text-sm text-muted-foreground">Solicitado por {selectedRequest.userName}</span>
                 </div>
               </div>
             )}
             <DialogFooter>
               <Button variant="outline" onClick={() => setConfirmApproveOpen(false)}>
-                Cancel
+                Cancelar
               </Button>
               <Button onClick={handleApprove} className="bg-emerald-600 hover:bg-emerald-700">
                 <CheckCircle2 className="mr-2 h-4 w-4" />
-                Confirm Approval
+                Confirmar aprovação
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -312,10 +312,10 @@ export default function AnalysisPage() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-destructive" />
-                Reject Request
+                Rejeitar solicitação
               </DialogTitle>
               <DialogDescription>
-                Please provide a reason for rejecting this request. This will be shared with the requester.
+                Por favor, forneça um motivo para a rejeição deste pedido. Essa informação será compartilhada com o solicitante.
               </DialogDescription>
             </DialogHeader>
             {selectedRequest && (
@@ -325,14 +325,14 @@ export default function AnalysisPage() {
                     <RequestTypeIcon type={selectedRequest.type} className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="font-medium text-foreground">{selectedRequest.destination}</p>
-                      <p className="text-sm text-muted-foreground">Requested by {selectedRequest.userName}</p>
+                      <p className="text-sm text-muted-foreground">Solicitado por {selectedRequest.userName}</p>
                     </div>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Rejection Reason *</label>
+                  <label className="text-sm font-medium text-foreground">Motivo da rejeição *</label>
                   <Textarea
-                    placeholder="Enter the reason for rejecting this request..."
+                    placeholder="Digite o motivo para rejeitar esta solicitação..."
                     value={rejectionReason}
                     onChange={(e) => setRejectionReason(e.target.value)}
                     rows={3}
@@ -348,11 +348,11 @@ export default function AnalysisPage() {
                   setRejectionReason("")
                 }}
               >
-                Cancel
+                Cancelar
               </Button>
               <Button variant="destructive" onClick={handleReject} disabled={!rejectionReason.trim()}>
                 <XCircle className="mr-2 h-4 w-4" />
-                Reject Request
+                Rejeitar solicitação
               </Button>
             </DialogFooter>
           </DialogContent>

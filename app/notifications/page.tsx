@@ -45,15 +45,15 @@ export default function NotificationsPage() {
       case "approval":
         return (
           <Badge variant="default" className="bg-emerald-600">
-            Approved
+            Aprovado
           </Badge>
         )
       case "rejection":
-        return <Badge variant="destructive">Rejected</Badge>
+        return <Badge variant="destructive">Rejeitado</Badge>
       case "new_request":
-        return <Badge variant="default">New Request</Badge>
+        return <Badge variant="default">Nova Solicitação</Badge>
       case "system":
-        return <Badge variant="secondary">System</Badge>
+        return <Badge variant="secondary">Sistema</Badge>
       default:
         return null
     }
@@ -73,13 +73,13 @@ export default function NotificationsPage() {
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Notifications</h1>
-            <p className="text-muted-foreground">Stay updated on your travel requests</p>
+            <h1 className="text-2xl font-bold text-foreground">Notificações</h1>
+            <p className="text-muted-foreground">Fique atualizado sobre suas solicitações de viagem</p>
           </div>
           {unreadCount > 0 && (
             <Button variant="outline" onClick={handleMarkAllRead}>
               <Check className="mr-2 h-4 w-4" />
-              Mark All as Read
+              Marcar todas como lidas
             </Button>
           )}
         </div>
@@ -94,13 +94,13 @@ export default function NotificationsPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Unread</CardDescription>
+              <CardDescription>Não Lidas</CardDescription>
               <CardTitle className="text-2xl text-primary">{unreadCount}</CardTitle>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Approvals</CardDescription>
+              <CardDescription>Aprovações</CardDescription>
               <CardTitle className="text-2xl text-emerald-600">
                 {myNotifications.filter((n) => n.type === "approval").length}
               </CardTitle>
@@ -108,7 +108,7 @@ export default function NotificationsPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Rejections</CardDescription>
+              <CardDescription>Rejeições</CardDescription>
               <CardTitle className="text-2xl text-destructive">
                 {myNotifications.filter((n) => n.type === "rejection").length}
               </CardTitle>
@@ -119,11 +119,11 @@ export default function NotificationsPage() {
         {/* Filters */}
         <Tabs value={filter} onValueChange={(v) => setFilter(v as NotificationFilter)}>
           <TabsList>
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="approval">Approvals</TabsTrigger>
-            <TabsTrigger value="rejection">Rejections</TabsTrigger>
-            <TabsTrigger value="new_request">Requests</TabsTrigger>
-            <TabsTrigger value="system">System</TabsTrigger>
+            <TabsTrigger value="all">Todas</TabsTrigger>
+            <TabsTrigger value="approval">Aprovações</TabsTrigger>
+            <TabsTrigger value="rejection">Rejeições</TabsTrigger>
+            <TabsTrigger value="new_request">Solicitações</TabsTrigger>
+            <TabsTrigger value="system">Sistema</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -132,9 +132,9 @@ export default function NotificationsPage() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Bell className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-lg font-medium text-foreground">No notifications</p>
+              <p className="text-lg font-medium text-foreground">Nenhuma notificação</p>
               <p className="text-muted-foreground">
-                {filter === "all" ? "You're all caught up!" : `No ${filter.replace("_", " ")} notifications`}
+                {filter === "all" ? "Você está tudo atualizado!" : `Nenhuma notificação de ${filter.replace("_", " ")}`}
               </p>
             </CardContent>
           </Card>

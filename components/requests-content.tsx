@@ -47,13 +47,13 @@ export function RequestsContent() {
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">My Requests</h1>
-            <p className="text-muted-foreground">Manage and track your travel requests</p>
+            <h1 className="text-2xl font-bold text-foreground">Minhas Solicitações</h1>
+            <p className="text-muted-foreground">Gerencie e acompanhe suas solicitações de viagem</p>
           </div>
           <Link href="/requests/new">
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              New Request
+              Nova Solicitação
             </Button>
           </Link>
         </div>
@@ -65,7 +65,7 @@ export function RequestsContent() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search by destination, origin, or reason..."
+                  placeholder="Pesquise por destino, origem ou motivo..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9"
@@ -76,10 +76,10 @@ export function RequestsContent() {
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="all">Todas</SelectItem>
+                  <SelectItem value="pending">Pendente</SelectItem>
+                  <SelectItem value="approved">Aprovada</SelectItem>
+                  <SelectItem value="rejected">Rejeitada</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as RequestType | "all")}>
@@ -87,10 +87,10 @@ export function RequestsContent() {
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="flight">Flight</SelectItem>
+                  <SelectItem value="all">Todas</SelectItem>
+                  <SelectItem value="flight">Voo</SelectItem>
                   <SelectItem value="hotel">Hotel</SelectItem>
-                  <SelectItem value="car">Car Rental</SelectItem>
+                  <SelectItem value="car">Locação de Carro</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -101,10 +101,10 @@ export function RequestsContent() {
         {filteredRequests.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
-              <p className="text-muted-foreground">No requests found</p>
+              <p className="text-muted-foreground">Nenhuma solicitação encontrada</p>
               {myRequests.length === 0 && (
                 <Link href="/requests/new" className="mt-4">
-                  <Button>Create your first request</Button>
+                  <Button>Criar sua primeira solicitação</Button>
                 </Link>
               )}
             </CardContent>
@@ -130,7 +130,7 @@ export function RequestsContent() {
                         </div>
                         <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                           <MapPin className="h-3 w-3" />
-                          <span>From {request.origin}</span>
+                          <span>De {request.origin}</span>
                         </div>
                         <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="h-3 w-3" />
@@ -177,7 +177,7 @@ export function RequestsContent() {
                         <StatusBadge status={selectedRequest.status} />
                       </DialogTitle>
                       <DialogDescription>
-                        {selectedRequest.type.charAt(0).toUpperCase() + selectedRequest.type.slice(1)} request from{" "}
+                        {selectedRequest.type.charAt(0).toUpperCase() + selectedRequest.type.slice(1)} solicitação de{" "}
                         {selectedRequest.origin}
                       </DialogDescription>
                     </div>
@@ -188,13 +188,13 @@ export function RequestsContent() {
                   {/* Trip Details */}
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                      <p className="text-sm text-muted-foreground">Departure</p>
+                      <p className="text-sm text-muted-foreground">Partida</p>
                       <p className="font-medium text-foreground">
                         {format(parseISO(selectedRequest.departureDate), "EEEE, MMMM d, yyyy")}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Return</p>
+                      <p className="text-sm text-muted-foreground">Retorno</p>
                       <p className="font-medium text-foreground">
                         {format(parseISO(selectedRequest.returnDate), "EEEE, MMMM d, yyyy")}
                       </p>
@@ -202,13 +202,13 @@ export function RequestsContent() {
                   </div>
 
                   <div>
-                    <p className="text-sm text-muted-foreground">Reason for Travel</p>
+                    <p className="text-sm text-muted-foreground">Motivo da Viagem</p>
                     <p className="font-medium text-foreground">{selectedRequest.reason}</p>
                   </div>
 
                   {/* Selected Option */}
                   <div>
-                    <p className="text-sm font-medium text-foreground mb-2">Selected Option</p>
+                    <p className="text-sm font-medium text-foreground mb-2">Opção selecionada</p>
                     <Card className="border-primary">
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
@@ -235,7 +235,7 @@ export function RequestsContent() {
                   {/* Alternatives */}
                   {selectedRequest.alternatives.length > 0 && (
                     <div>
-                      <p className="text-sm font-medium text-foreground mb-2">Alternative Options</p>
+                      <p className="text-sm font-medium text-foreground mb-2">Opções alternativas</p>
                       <div className="space-y-2">
                         {selectedRequest.alternatives.map((alt) => (
                           <Card key={alt.id}>
@@ -257,7 +257,7 @@ export function RequestsContent() {
                   {/* Approval/Rejection Info */}
                   {selectedRequest.status === "approved" && selectedRequest.approvalCode && (
                     <div className="rounded-lg bg-emerald-50 p-4">
-                      <p className="text-sm font-medium text-emerald-800">Approval Code</p>
+                      <p className="text-sm font-medium text-emerald-800">Código de Aprovação</p>
                       <div className="mt-1 flex items-center gap-2">
                         <p className="font-mono text-lg font-bold text-emerald-700">{selectedRequest.approvalCode}</p>
                         <Button
@@ -273,7 +273,7 @@ export function RequestsContent() {
                           )}
                         </Button>
                       </div>
-                      <p className="mt-2 text-sm text-emerald-600">Use this code when booking with the provider</p>
+                      <p className="mt-2 text-sm text-emerald-600">Use este código ao subir o boleto para pagamento</p>
                     </div>
                   )}
 

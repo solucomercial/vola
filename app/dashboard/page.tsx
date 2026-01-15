@@ -39,13 +39,13 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Welcome back, {currentUser.name.split(" ")[0]}</h1>
-            <p className="text-muted-foreground">Here&apos;s an overview of your travel requests</p>
+            <h1 className="text-2xl font-bold text-foreground">Bem-vindo de volta, {currentUser.name.split(" ")[0]}</h1>
+            <p className="text-muted-foreground">Aqui está uma visão geral das suas solicitações de viagem</p>
           </div>
           <Link href="/requests/new">
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              New Request
+              Nova Solicitação
             </Button>
           </Link>
         </div>
@@ -54,41 +54,41 @@ export default function DashboardPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Total Requests</CardDescription>
+              <CardDescription>Total de Solicitações</CardDescription>
               <CardTitle className="text-3xl">{myRequests.length}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground">All time</p>
+              <p className="text-xs text-muted-foreground">Seu total de solicitações</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Pending</CardDescription>
+              <CardDescription>Pendente</CardDescription>
               <CardTitle className="text-3xl text-amber-600">{myPending}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground">Awaiting approval</p>
+              <p className="text-xs text-muted-foreground">Aguardando aprovação</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Approved</CardDescription>
+              <CardDescription>Aprovado</CardDescription>
               <CardTitle className="text-3xl text-emerald-600">{myApproved}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground">Ready to travel</p>
+              <p className="text-xs text-muted-foreground">Pronto para viajar</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Rejected</CardDescription>
+              <CardDescription>Rejeitado</CardDescription>
               <CardTitle className="text-3xl text-destructive">{myRejected}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground">Need revision</p>
+              <p className="text-xs text-muted-foreground">Precisa de revisão</p>
             </CardContent>
           </Card>
         </div>
@@ -102,13 +102,13 @@ export default function DashboardPage() {
                   <span className="text-lg font-bold text-primary">{pendingRequests.length}</span>
                 </div>
                 <div>
-                  <p className="font-medium text-foreground">Requests Awaiting Your Approval</p>
-                  <p className="text-sm text-muted-foreground">Review pending travel requests from your team</p>
+                  <p className="font-medium text-foreground">Solicitações Aguardando Sua Aprovação</p>
+                  <p className="text-sm text-muted-foreground">Revise solicitações de viagem pendentes do seu time</p>
                 </div>
               </div>
               <Link href="/analysis">
                 <Button variant="outline">
-                  Review Now
+                  Revise agora
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -121,12 +121,12 @@ export default function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Recent Requests</CardTitle>
-                <CardDescription>Your latest travel requests</CardDescription>
+                <CardTitle>Solicitações Recentes</CardTitle>
+                <CardDescription>Suas últimas solicitações de viagem</CardDescription>
               </div>
               <Link href="/requests">
                 <Button variant="ghost" size="sm">
-                  View All
+                  Ver todas
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -134,10 +134,10 @@ export default function DashboardPage() {
             <CardContent>
               {recentRequests.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <p className="text-muted-foreground">No requests yet</p>
+                  <p className="text-muted-foreground">Ainda não há solicitações</p>
                   <Link href="/requests/new" className="mt-2">
                     <Button variant="outline" size="sm">
-                      Create your first request
+                      Faça sua primeira solicitação
                     </Button>
                   </Link>
                 </div>
@@ -171,14 +171,14 @@ export default function DashboardPage() {
           {/* Upcoming Trips */}
           <Card>
             <CardHeader>
-              <CardTitle>Upcoming Trips</CardTitle>
-              <CardDescription>Your approved upcoming travel</CardDescription>
+              <CardTitle>Próximas Viagens</CardTitle>
+              <CardDescription>Suas viagens aprovadas futuras</CardDescription>
             </CardHeader>
             <CardContent>
               {upcomingTrips.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <p className="text-muted-foreground">No upcoming trips</p>
-                  <p className="text-sm text-muted-foreground mt-1">Approved requests will appear here</p>
+                  <p className="text-muted-foreground">Nenhuma viagem futura</p>
+                  <p className="text-sm text-muted-foreground mt-1">Solicitações aprovadas aparecerão aqui</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -199,7 +199,7 @@ export default function DashboardPage() {
                         </div>
                         {trip.approvalCode && (
                           <div className="text-right">
-                            <p className="text-xs text-muted-foreground">Approval Code</p>
+                            <p className="text-xs text-muted-foreground">Código de Aprovação</p>
                             <p className="font-mono text-sm font-medium text-primary">{trip.approvalCode}</p>
                           </div>
                         )}
