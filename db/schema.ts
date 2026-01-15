@@ -35,7 +35,15 @@ export const travelRequests = pgTable("travel_requests", {
   approverId: text("approver_id"),
 });
 
-// Relacionamentos (Opcional, mas ajuda nas queries)
+// Relações para a tabela de Usuários
 export const usersRelations = relations(users, ({ many }) => ({
   requests: many(travelRequests),
+}));
+
+// Relações para a tabela de Solicitações (Obrigatório para o Studio)
+export const travelRequestsRelations = relations(travelRequests, ({ one }) => ({
+  user: one(users, {
+    fields: [travelRequests.userId],
+    references: [users.id],
+  }),
 }));
