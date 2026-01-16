@@ -1,9 +1,11 @@
-import { pgTable, text, timestamp, jsonb, pgEnum, uuid } from "drizzle-orm/pg-core";
+// db/schema.ts
+import { pgTable, text, timestamp, jsonb, pgEnum, uuid, boolean } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 export const roleEnum = pgEnum("user_role", ["requester", "approver", "admin"]);
 export const typeEnum = pgEnum("request_type", ["flight", "hotel", "car"]);
 export const statusEnum = pgEnum("request_status", ["pending", "approved", "rejected"]);
+export const notifTypeEnum = pgEnum("notif_type", ["approval", "rejection", "system", "new_request"]);
 
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
@@ -26,20 +28,43 @@ export const travelRequests = pgTable("travel_requests", {
   status: statusEnum("status").default("pending").notNull(),
   selectedOption: jsonb("selected_option").notNull(),
   alternatives: jsonb("alternatives").notNull(),
-  bookingUrl: text("booking_url"), // Campo para o link de reserva externa
+  bookingUrl: text("booking_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   approvalCode: text("approval_code"),
   rejectionReason: text("rejection_reason"),
   approverId: text("approver_id"),
 });
 
+export const notifications = pgTable("notifications", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id").references(() => users.id).notNull(),
+  type: notifTypeEnum("type").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  read: boolean("read").default(false).notNull(),
+  requestId: uuid("request_id").references(() => travelRequests.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   requests: many(travelRequests),
+  notifications: many(notifications),
 }));
 
 export const travelRequestsRelations = relations(travelRequests, ({ one }) => ({
   user: one(users, {
     fields: [travelRequests.userId],
     references: [users.id],
+  }),
+}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  request: one(travelRequests, {
+    fields: [notifications.requestId],
+    references: [travelRequests.id],
   }),
 }));
