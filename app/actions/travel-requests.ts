@@ -1,3 +1,4 @@
+// app/actions/travel-requests.ts
 "use server"
 
 import { db } from "@/db";
@@ -30,7 +31,7 @@ export async function createTravelRequestAction(data: any) {
     revalidatePath("/requests");
     return { success: true };
   } catch (error) {
-    console.error("Erro ao salvar:", error);
+    console.error("Erro ao salvar solicitação:", error);
     return { success: false };
   }
 }

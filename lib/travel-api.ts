@@ -24,23 +24,6 @@ export interface TravelOption {
 const RAPID_HOST = 'booking-com15.p.rapidapi.com';
 const BASE_URL_RAPID = `https://${RAPID_HOST}/api/v1`;
 
-async function getDestinationId(cityName: string): Promise<string | null> {
-  try {
-    const url = `${BASE_URL_RAPID}/hotels/searchDestination?query=${encodeURIComponent(cityName)}`;
-    const res = await fetch(url, {
-      headers: {
-        'x-rapidapi-key': process.env.RAPIDAPI_KEY || '',
-        'x-rapidapi-host': RAPID_HOST
-      }
-    });
-    const data = await res.json();
-    return data.data?.[0]?.dest_id || null;
-  } catch (error) {
-    console.error("Erro ao buscar ID do destino:", error);
-    return null;
-  }
-}
-
 export async function fetchFlightOffers(origin: string, destination: string, date: string, returnDate?: string): Promise<TravelOption[]> {
   try {
     const tripType = returnDate ? "1" : "2";
@@ -49,29 +32,29 @@ export async function fetchFlightOffers(origin: string, destination: string, dat
     const res = await fetch(url);
     const data = await res.json();
 
+    console.log("\n==================== AUDITORIA: RAW SERPAPI (VOOS) ====================");
+    console.dir(data, { depth: null, colors: true });
+
     const flights = [...(data.best_flights || []), ...(data.other_flights || [])];
 
-    return flights.slice(0, 20).map((f: any, index: number) => {
-      const flightData = f.flights[0];
-      return {
-        id: `flight-${index}`,
-        provider: flightData.airline,
-        price: f.price || 0,
-        details: `${flightData.travel_class} - Duração: ${f.total_duration} min`,
-        bookingUrl: data.search_metadata?.google_flights_url,
-        departureTime: flightData.departure_airport?.time?.split(' ')[1],
-        arrivalTime: flightData.arrival_airport?.time?.split(' ')[1],
-        flightNumber: flightData.flight_number,
-        airplane: flightData.airplane,
-        legroom: flightData.legroom,
-        amenities: flightData.extensions || [],
-        airlineLogo: flightData.airline_logo,
-        departureAirport: flightData.departure_airport?.name,
-        arrivalAirport: flightData.arrival_airport?.name,
-      };
-    });
+    return flights.slice(0, 20).map((f: any, index: number) => ({
+      id: `flight-${index}`,
+      provider: f.flights[0]?.airline || "Companhia Aérea",
+      price: f.price || 0,
+      details: `${f.flights[0]?.travel_class || 'Economy'} - Duração: ${f.total_duration} min`,
+      bookingUrl: data.search_metadata?.google_flights_url,
+      departureTime: f.flights[0]?.departure_airport?.time?.split(' ')[1],
+      arrivalTime: f.flights[0]?.arrival_airport?.time?.split(' ')[1],
+      flightNumber: f.flights[0]?.flight_number,
+      airplane: f.flights[0]?.airplane,
+      legroom: f.flights[0]?.legroom,
+      amenities: f.flights[0]?.extensions || [],
+      airlineLogo: f.flights[0]?.airline_logo,
+      departureAirport: f.flights[0]?.departure_airport?.name,
+      arrivalAirport: f.flights[0]?.arrival_airport?.name,
+    }));
   } catch (error) {
-    console.error("Erro SerpApi Flights:", error);
+    console.error("[ERRO AUDITORIA] SerpApi Flights:", error);
     return [];
   }
 }
@@ -83,46 +66,67 @@ export async function fetchHotelOffers(destination: string, checkIn: string, che
     const res = await fetch(url);
     const data = await res.json();
 
-    return (data.properties || []).slice(0, 20).map((h: any, index: number) => ({
-      id: `hotel-${index}`,
-      provider: h.name,
-      // Fallback robusto para o preço: tenta várias propriedades do JSON da SerpApi
-      price: h.rate_per_night?.extracted_value || h.rate_per_night?.value || h.total_rate?.extracted_value || h.total_rate?.value || 0,
-      details: h.description || 'Hospedagem selecionada via Google Hotels',
-      bookingUrl: h.link,
-      images: h.images?.map((img: any) => img.thumbnail) || [h.thumbnail],
-      rating: h.overall_rating,
-      reviewsCount: h.reviews,
-      locationDetails: h.location_rating ? `${h.location_rating}/5 em localização` : "Localização central",
-      hotelAmenities: h.amenities || []
-    }));
+    console.log("\n==================== AUDITORIA: RAW SERPAPI (HOTÉIS) ====================");
+    console.dir(data, { depth: null, colors: true });
+
+    return (data.properties || []).slice(0, 20).map((h: any, index: number) => {
+      // Mapeamento de preço robusto para evitar o R$ 0
+      const priceValue = h.rate_per_night?.lowest || 
+                         h.rate_per_night?.extracted_lowest || 
+                         h.total_rate?.lowest || 
+                         h.total_rate?.extracted_lowest || 
+                         0;
+
+      return {
+        id: `hotel-${index}`,
+        provider: h.name,
+        price: priceValue,
+        details: h.description || 'Hospedagem selecionada via Google Hotels',
+        bookingUrl: h.link,
+        images: h.images?.map((img: any) => img.thumbnail) || [h.thumbnail],
+        rating: h.overall_rating,
+        reviewsCount: h.reviews,
+        locationDetails: h.location_rating ? `${h.location_rating}/5 em localização` : "Localização central",
+        hotelAmenities: h.amenities || []
+      };
+    });
   } catch (error) {
-    console.error("Erro SerpApi Hotels:", error);
+    console.error("[ERRO AUDITORIA] SerpApi Hotels:", error);
     return [];
   }
 }
 
 export async function fetchCarOffers(destination: string, date: string, returnDate: string): Promise<TravelOption[]> {
   try {
-    const destId = await getDestinationId(destination);
-    if (!destId) return [];
+    const locRes = await fetch(`${BASE_URL_RAPID}/cars/searchDestination?query=${encodeURIComponent(destination)}`, {
+      headers: { 'x-rapidapi-key': process.env.RAPIDAPI_KEY || '', 'x-rapidapi-host': RAPID_HOST }
+    });
+    const locData = await locRes.json();
+    const location = locData.data?.[0];
 
-    const url = `${BASE_URL_RAPID}/hotels/searchCars?dest_id=${destId}&arrival_date=${date}&departure_date=${returnDate}&currency=BRL`;
-    const res = await fetch(url, {
+    if (!location?.coordinates) return [];
+
+    const { latitude, longitude } = location.coordinates;
+
+    const carUrl = `${BASE_URL_RAPID}/cars/searchCarRentals?pick_up_latitude=${latitude}&pick_up_longitude=${longitude}&drop_off_latitude=${latitude}&drop_off_longitude=${longitude}&pick_up_date=${date}&drop_off_date=${returnDate}&pick_up_time=10:00&drop_off_time=10:00&currency_code=BRL`;
+
+    const res = await fetch(carUrl, {
       headers: { 'x-rapidapi-key': process.env.RAPIDAPI_KEY || '', 'x-rapidapi-host': RAPID_HOST }
     });
     const data = await res.json();
-    const results = data.data?.result || [];
 
-    return results.slice(0, 20).map((c: any, index: number) => ({
+    console.log("\n==================== AUDITORIA: RAW RAPIDAPI (CARROS) ====================");
+    console.dir(data, { depth: null, colors: true });
+
+    return (data.data || []).slice(0, 20).map((c: any, index: number) => ({
       id: `car-${index}`,
-      provider: c.name || "Locadora",
-      price: c.price || 0,
-      details: c.description || "Veículo disponível",
-      bookingUrl: c.url
+      provider: c.vendor_info?.name || "Locadora",
+      price: c.price_info?.total_price || 0,
+      details: `${c.vehicle_info?.label || 'Veículo'} - ${c.vehicle_info?.transmission || ''}`,
+      bookingUrl: c.reservation_url
     }));
   } catch (error) {
-    console.error("Erro RapidAPI Cars:", error);
+    console.error("[ERRO AUDITORIA] RapidAPI Cars:", error);
     return [];
   }
 }
