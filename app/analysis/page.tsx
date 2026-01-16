@@ -171,7 +171,7 @@ export default function AnalysisPage() {
             <CardHeader className="pb-2">
               <CardDescription>Valor em Análise</CardDescription>
               <CardTitle className="text-3xl">
-                R$ {pendingRequests.reduce((sum, r) => sum + r.selectedOption.price, 0).toLocaleString("pt-BR")}
+                R$ {pendingRequests.filter(r => r.status === "pending").reduce((sum, r) => sum + r.selectedOption.price, 0).toLocaleString("pt-BR")}
               </CardTitle>
             </CardHeader>
           </Card>

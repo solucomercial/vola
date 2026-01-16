@@ -31,18 +31,18 @@ export interface TravelRequest {
   userId: string
   userName: string
   type: RequestType
-  origin: string
+  origin: string | null
   destination: string
-  departureDate: string
-  returnDate: string
+  departureDate: Date | string
+  returnDate: Date | string
   reason: string
   status: RequestStatus
   selectedOption: TravelOption
   alternatives: TravelOption[]
-  createdAt: string
-  approvalCode?: string
-  rejectionReason?: string
-  approverId?: string
+  createdAt: string | Date
+  approvalCode?: string | null
+  rejectionReason?: string | null
+  approverId?: string | null
 }
 
 export interface Notification {

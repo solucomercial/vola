@@ -1,59 +1,81 @@
-import { db } from "@/db"
-import { travelRequests } from "@/db/schema"
+"use client"
+
+import { useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { FileText, TrendingUp, TrendingDown, Clock, Wallet, MapPin } from "lucide-react"
-import OverviewCharts from "@/components/overview-charts" // Importação direta corrigida
+import { OverviewContent } from "@/components/overview-content"
+import { getOverviewDataAction } from "@/app/actions/travel-requests"
+import { Skeleton } from "@/components/ui/skeleton"
 
-export default async function OverviewPage() {
-  const allRequests = await db.select().from(travelRequests)
+interface TravelRequest {
+  id: string
+  userId: string
+  userName: string
+  type: "flight" | "hotel" | "car"
+  destination: string
+  origin?: string | null
+  departureDate: Date | string
+  returnDate: Date | string
+  status: "pending" | "approved" | "rejected"
+  reason: string
+  selectedOption: any
+  createdAt: Date | string
+}
 
-  const approvedRequests = allRequests.filter((r) => r.status === "approved")
-  
-  const stats = {
-    total: allRequests.length,
-    pending: allRequests.filter((r) => r.status === "pending").length,
-    approved: approvedRequests.length,
-    rejected: allRequests.filter((r) => r.status === "rejected").length,
-    totalCost: approvedRequests.reduce((acc, curr: any) => acc + (Number(curr.selectedOption.price) || 0), 0)
-  }
+interface User {
+  id: string
+  name: string
+  email: string
+  role: string
+}
 
-  // Preparação de dados mais limpa para o componente Client
-  const chartData = {
-    categoryStats: [
-      { category: "flight", label: "Voos", amount: approvedRequests.filter(r => r.type === "flight").reduce((acc, curr: any) => acc + (Number(curr.selectedOption.price) || 0), 0) },
-      { category: "hotel", label: "Hotéis", amount: approvedRequests.filter(r => r.type === "hotel").reduce((acc, curr: any) => acc + (Number(curr.selectedOption.price) || 0), 0) },
-      { category: "car", label: "Carros", amount: approvedRequests.filter(r => r.type === "car").reduce((acc, curr: any) => acc + (Number(curr.selectedOption.price) || 0), 0) },
-    ],
-    // Mock de histórico (pode ser expandido conforme o banco cresce)
-    monthlyHistory: [
-      { month: "Janeiro", total: stats.totalCost }
-    ]
-  }
+export default function OverviewPage() {
+  const [data, setData] = useState<{ requests: TravelRequest[]; users: User[] } | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const result = await getOverviewDataAction()
+        // Mapear dados para incluir userName
+        const requestsWithNames = (result.requests || []).map((r: any) => ({
+          ...r,
+          userName:
+            result.users?.find((u: any) => u.id === r.userId)?.name || "Desconhecido",
+        }))
+        setData({
+          requests: requestsWithNames,
+          users: result.users || [],
+        })
+      } catch (error) {
+        console.error("Erro ao carregar dados de overview:", error)
+        setData({ requests: [], users: [] })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [])
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-2xl font-bold">Visão Geral</h1>
-          <p className="text-muted-foreground">Métricas consolidadas do banco de dados</p>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardDescription>Custo Aprovado</CardDescription>
-              <Wallet className="h-4 w-4 text-emerald-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-emerald-600">
-                R$ {stats.totalCost.toLocaleString("pt-BR")}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <OverviewCharts data={chartData} />
+      <div className="p-4 md:p-8">
+        {loading ? (
+          <div className="space-y-6">
+            <Skeleton className="h-8 w-48" />
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-32" />
+              ))}
+            </div>
+          </div>
+        ) : data ? (
+          <OverviewContent requests={data.requests} users={data.users} />
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Erro ao carregar dados</p>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   )

@@ -29,6 +29,7 @@ import { searchOptionsAction, createTravelRequestAction } from "@/app/actions/tr
 import { type TravelOption } from "@/lib/travel-api"
 import { FlightInfo } from "@/components/flight-info"
 import { HotelInfo } from "@/components/hotel-info"
+import { toast } from "sonner"
 
 export default function NewRequestPage() {
   const router = useRouter()
@@ -65,11 +66,22 @@ export default function NewRequestPage() {
     setVisibleCount(5)
     setSelectedOptionId("") 
     try {
-      // Chamada atualizada com returnDate
       const results = await searchOptionsAction(type, origin, destination, departureDate, returnDate)
       setOptions(results)
+      if (results.length > 0) {
+        toast.success(`${results.length} opções encontradas!`, {
+          description: `Escolha a melhor opção de ${type === "flight" ? "voo" : type === "hotel" ? "hotel" : "locação de carro"}`
+        })
+      } else {
+        toast.info("Nenhuma opção encontrada", {
+          description: "Tente ajustar os critérios de busca"
+        })
+      }
     } catch (error) {
       console.error("Erro ao pesquisar:", error)
+      toast.error("Erro ao pesquisar opções", {
+        description: "Tente novamente em alguns momentos"
+      })
     } finally {
       setIsSearching(false)
     }
@@ -95,15 +107,70 @@ export default function NewRequestPage() {
         departureDate,
         returnDate,
         reason,
-        selectedOption,
-        alternatives: options.filter((o) => o.id !== selectedOptionId),
+        selectedOption: {
+          ...selectedOption,
+          // Garante que todas as informações estejam presentes
+          id: selectedOption.id,
+          provider: selectedOption.provider,
+          price: selectedOption.price,
+          details: selectedOption.details,
+          bookingUrl: selectedOption.bookingUrl,
+          departureTime: selectedOption.departureTime,
+          arrivalTime: selectedOption.arrivalTime,
+          flightNumber: selectedOption.flightNumber,
+          airplane: selectedOption.airplane,
+          legroom: selectedOption.legroom,
+          amenities: selectedOption.amenities,
+          airlineLogo: selectedOption.airlineLogo,
+          departureAirport: selectedOption.departureAirport,
+          arrivalAirport: selectedOption.arrivalAirport,
+          images: selectedOption.images,
+          rating: selectedOption.rating,
+          reviewsCount: selectedOption.reviewsCount,
+          locationDetails: selectedOption.locationDetails,
+          hotelAmenities: selectedOption.hotelAmenities,
+        },
+        alternatives: options
+          .filter((o) => o.id !== selectedOptionId)
+          .map(alt => ({
+            ...alt,
+            id: alt.id,
+            provider: alt.provider,
+            price: alt.price,
+            details: alt.details,
+            bookingUrl: alt.bookingUrl,
+            departureTime: alt.departureTime,
+            arrivalTime: alt.arrivalTime,
+            flightNumber: alt.flightNumber,
+            airplane: alt.airplane,
+            legroom: alt.legroom,
+            amenities: alt.amenities,
+            airlineLogo: alt.airlineLogo,
+            departureAirport: alt.departureAirport,
+            arrivalAirport: alt.arrivalAirport,
+            images: alt.images,
+            rating: alt.rating,
+            reviewsCount: alt.reviewsCount,
+            locationDetails: alt.locationDetails,
+            hotelAmenities: alt.hotelAmenities,
+          })),
       })
 
       if (result.success) {
+        toast.success("Solicitação enviada com sucesso!", {
+          description: "Sua solicitação foi registrada e será analisada em breve"
+        })
         router.push("/requests")
+      } else {
+        toast.error("Erro ao criar solicitação", {
+          description: "Tente novamente em alguns momentos"
+        })
       }
     } catch (error) {
       console.error("Erro ao submeter:", error)
+      toast.error("Erro inesperado", {
+        description: "Não conseguimos processar sua solicitação"
+      })
     } finally {
       setIsSubmitting(false)
     }

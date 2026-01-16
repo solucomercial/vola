@@ -7,6 +7,17 @@ import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { fetchFlightOffers, fetchHotelOffers, fetchCarOffers } from "@/lib/travel-api";
 
+// Função para obter usuário por ID
+export async function getUserAction(userId: string) {
+  try {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    return user;
+  } catch (error) {
+    console.error("Erro ao buscar usuário:", error);
+    return null;
+  }
+}
+
 // Função para procurar solicitações pendentes para a tela de análise
 export async function getPendingRequestsAction() {
   try {
@@ -15,6 +26,58 @@ export async function getPendingRequestsAction() {
   } catch (error) {
     console.error("Erro ao procurar solicitações pendentes:", error);
     return [];
+  }
+}
+
+// Função para procurar solicitações do usuário
+export async function getUserRequestsAction(userId: string) {
+  try {
+    const results = await db.select().from(travelRequests).where(eq(travelRequests.userId, userId));
+    return results;
+  } catch (error) {
+    console.error("Erro ao procurar solicitações do usuário:", error);
+    return [];
+  }
+}
+
+// Função para obter notificações do usuário
+export async function getNotificationsAction(userId: string) {
+  try {
+    const results = await db.select().from(notifications).where(eq(notifications.userId, userId));
+    return results;
+  } catch (error) {
+    console.error("Erro ao buscar notificações:", error);
+    return [];
+  }
+}
+
+// Função para marcar notificação como lida
+export async function markNotificationReadAction(notificationId: string) {
+  try {
+    await db.update(notifications)
+      .set({ read: true })
+      .where(eq(notifications.id, notificationId));
+    revalidatePath("/notifications");
+    return { success: true };
+  } catch (error) {
+    console.error("Erro ao marcar notificação como lida:", error);
+    return { success: false };
+  }
+}
+
+// Função para obter todos os dados para o overview
+export async function getOverviewDataAction() {
+  try {
+    const allRequests = await db.select().from(travelRequests);
+    const allUsers = await db.select().from(users);
+    
+    return {
+      requests: allRequests,
+      users: allUsers,
+    };
+  } catch (error) {
+    console.error("Erro ao buscar dados do overview:", error);
+    return { requests: [], users: [] };
   }
 }
 
@@ -31,6 +94,7 @@ export async function searchOptionsAction(type: string, origin: string, destinat
 
 export async function createTravelRequestAction(data: any) {
   try {
+    // 1. Cria a solicitação principal
     const [newReq] = await db.insert(travelRequests).values({
       ...data,
       departureDate: new Date(data.departureDate),
@@ -39,23 +103,30 @@ export async function createTravelRequestAction(data: any) {
       status: "pending",
     }).returning();
 
-    const admins = await db.select().from(users).where(eq(users.role, "approver"));
-    if (admins.length > 0) {
-      const notifs = admins.map(admin => ({
-        userId: admin.id,
-        type: "new_request" as const,
-        title: "Nova Solicitação",
-        message: `${data.userName} submeteu uma solicitação de ${data.type} para ${data.destination}.`,
-        requestId: newReq.id
-      }));
-      await db.insert(notifications).values(notifs);
+    // 2. Tenta enviar notificações (encapsulado para não quebrar o fluxo principal)
+    try {
+      const admins = await db.select().from(users).where(eq(users.role, "approver"));
+      if (admins.length > 0) {
+        const notifs = admins.map(admin => ({
+          userId: admin.id,
+          type: "new_request" as const,
+          title: "Nova Solicitação",
+          message: `${data.userName} submeteu uma solicitação de ${data.type} para ${data.destination}.`,
+          requestId: newReq.id
+        }));
+        await db.insert(notifications).values(notifs);
+      }
+    } catch (notifError) {
+      console.error("Erro ao gerar notificações (não crítico):", notifError);
+      // O fluxo continua pois a solicitação já foi salva
     }
 
+    // 3. Atualiza as rotas e retorna sucesso
     revalidatePath("/analysis");
     revalidatePath("/requests");
     return { success: true };
   } catch (error) {
-    console.error("Erro ao salvar solicitação:", error);
+    console.error("Erro crítico ao salvar solicitação:", error);
     return { success: false };
   }
 }
@@ -69,18 +140,23 @@ export async function approveRequestAction(requestId: string, approverId: string
       .where(eq(travelRequests.id, requestId))
       .returning();
 
-    await db.insert(notifications).values({
-      userId: updated.userId,
-      type: "approval",
-      title: "Solicitação Aprovada",
-      message: `A sua viagem para ${updated.destination} foi aprovada. Código: ${approvalCode}`,
-      requestId: updated.id
-    });
+    try {
+      await db.insert(notifications).values({
+        userId: updated.userId,
+        type: "approval",
+        title: "Solicitação Aprovada",
+        message: `A sua viagem para ${updated.destination} foi aprovada. Código: ${approvalCode}`,
+        requestId: updated.id
+      });
+    } catch (e) {
+      console.error("Erro na notificação de aprovação:", e);
+    }
 
     revalidatePath("/analysis");
     revalidatePath("/requests");
     return { success: true };
   } catch (error) {
+    console.error("Erro ao aprovar solicitação:", error);
     return { success: false };
   }
 }
@@ -92,18 +168,23 @@ export async function rejectRequestAction(requestId: string, approverId: string,
       .where(eq(travelRequests.id, requestId))
       .returning();
 
-    await db.insert(notifications).values({
-      userId: updated.userId,
-      type: "rejection",
-      title: "Solicitação Rejeitada",
-      message: `A sua viagem para ${updated.destination} foi rejeitada. Motivo: ${reason}`,
-      requestId: updated.id
-    });
+    try {
+      await db.insert(notifications).values({
+        userId: updated.userId,
+        type: "rejection",
+        title: "Solicitação Rejeitada",
+        message: `A sua viagem para ${updated.destination} foi rejeitada. Motivo: ${reason}`,
+        requestId: updated.id
+      });
+    } catch (e) {
+      console.error("Erro na notificação de rejeição:", e);
+    }
 
     revalidatePath("/analysis");
     revalidatePath("/requests");
     return { success: true };
   } catch (error) {
+    console.error("Erro ao rejeitar solicitação:", error);
     return { success: false };
   }
 }

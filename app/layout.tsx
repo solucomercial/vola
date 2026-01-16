@@ -1,8 +1,8 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import { AppProvider } from "@/context/app-context"
+import { Toaster } from "@/components/ui/sonner"
 
 export const metadata: Metadata = {
   title: "Corporate Travel Platform - Soluções Serviços Terceirizados",
@@ -19,9 +19,10 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="pt-br">
       <body className="font-sans antialiased">
         <AppProvider>{children}</AppProvider>
+        <Toaster richColors position="top-right" />
       </body>
     </html>
   )
