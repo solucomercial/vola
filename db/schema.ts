@@ -26,7 +26,7 @@ export const travelRequests = pgTable("travel_requests", {
   status: statusEnum("status").default("pending").notNull(),
   selectedOption: jsonb("selected_option").notNull(),
   alternatives: jsonb("alternatives").notNull(),
-  bookingUrl: text("booking_url"), // Link para reserva externa
+  bookingUrl: text("booking_url"), // Campo para o link de reserva externa
   createdAt: timestamp("created_at").defaultNow().notNull(),
   approvalCode: text("approval_code"),
   rejectionReason: text("rejection_reason"),

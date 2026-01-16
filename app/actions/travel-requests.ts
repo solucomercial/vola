@@ -3,14 +3,15 @@
 import { db } from "@/db";
 import { travelRequests } from "@/db/schema";
 import { revalidatePath } from "next/cache";
-import { fetchFlightOffers, fetchRapidApiOffers } from "@/lib/travel-api";
+import { fetchFlightOffers, fetchHotelOffers, fetchCarOffers } from "@/lib/travel-api";
 
-export async function searchOptionsAction(type: string, origin: string, destination: string, date: string) {
+export async function searchOptionsAction(type: string, origin: string, destination: string, date: string, returnDate: string) {
   const fmtDate = new Date(date).toISOString().split('T')[0];
+  const fmtReturnDate = new Date(returnDate).toISOString().split('T')[0];
   
-  if (type === 'flight') return await fetchFlightOffers(origin, destination, fmtDate);
-  if (type === 'hotel') return await fetchRapidApiOffers('hotel', destination, fmtDate);
-  if (type === 'car') return await fetchRapidApiOffers('car', destination, fmtDate);
+  if (type === 'flight') return await fetchFlightOffers(origin, destination, fmtDate, fmtReturnDate);
+  if (type === 'hotel') return await fetchHotelOffers(destination, fmtDate, fmtReturnDate);
+  if (type === 'car') return await fetchCarOffers(destination, fmtDate, fmtReturnDate);
   
   return [];
 }
@@ -18,17 +19,10 @@ export async function searchOptionsAction(type: string, origin: string, destinat
 export async function createTravelRequestAction(data: any) {
   try {
     await db.insert(travelRequests).values({
-      userId: data.userId,
-      userName: data.userName,
-      type: data.type,
-      origin: data.origin || null,
-      destination: data.destination,
+      ...data,
       departureDate: new Date(data.departureDate),
       returnDate: new Date(data.returnDate),
-      reason: data.reason,
-      selectedOption: data.selectedOption,
-      alternatives: data.alternatives,
-      bookingUrl: data.selectedOption.bookingUrl || null, // Salva o link de reserva
+      bookingUrl: data.selectedOption.bookingUrl || null,
       status: "pending",
     });
 
