@@ -105,7 +105,7 @@ export function HotelInfo({ option, type, onSelect }: HotelInfoProps) {
             <div>
               <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1">Total Estimado</p>
               <p className="text-4xl font-black text-primary tracking-tighter">
-                R$ {option.price.toLocaleString("pt-BR")}
+                {option.price.toLocaleString("pt-BR")}
               </p>
             </div>
             <Badge className="px-4 py-1 font-bold">Melhor Oferta</Badge>

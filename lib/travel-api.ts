@@ -130,3 +130,123 @@ export async function fetchCarOffers(destination: string, date: string, returnDa
     return [];
   }
 }
+
+export interface LocationOption {
+  iata: string;
+  name: string;
+  city: string;
+  country: string;
+}
+
+// Lista de principais aeroportos para fallback
+const MAJOR_AIRPORTS: LocationOption[] = [
+  { iata: "GRU", city: "São Paulo", name: "Guarulhos (GRU)", country: "Brasil" },
+  { iata: "CGH", city: "São Paulo", name: "Congonhas (CGH)", country: "Brasil" },
+  { iata: "GIG", city: "Rio de Janeiro", name: "Galeão (GIG)", country: "Brasil" },
+  { iata: "SDU", city: "Rio de Janeiro", name: "Santos Dumont (SDU)", country: "Brasil" },
+  { iata: "BH", city: "Belo Horizonte", name: "Confins (BH)", country: "Brasil" },
+  { iata: "BSB", city: "Brasília", name: "Brasília (BSB)", country: "Brasil" },
+  { iata: "PRG", city: "Curitiba", name: "Afonso Pena (PRG)", country: "Brasil" },
+  { iata: "POA", city: "Porto Alegre", name: "Salgado Filho (POA)", country: "Brasil" },
+  { iata: "SSA", city: "Salvador", name: "Deputado Luís Eduardo (SSA)", country: "Brasil" },
+  { iata: "REC", city: "Recife", name: "Gilberto Freyre (REC)", country: "Brasil" },
+  { iata: "MCZ", city: "Maceió", name: "Zumbi dos Palmares (MCZ)", country: "Brasil" },
+  { iata: "FOR", city: "Fortaleza", name: "Pinto Martins (FOR)", country: "Brasil" },
+  { iata: "SLZ", city: "São Luís", name: "Marechal Cunha Machado (SLZ)", country: "Brasil" },
+  { iata: "MAO", city: "Manaus", name: "Manaus (MAO)", country: "Brasil" },
+  { iata: "UDI", city: "Uberlândia", name: "Uberlândia (UDI)", country: "Brasil" },
+  { iata: "JPA", city: "João Pessoa", name: "Presidente Castro Pinto (JPA)", country: "Brasil" },
+  { iata: "JDO", city: "Londrina", name: "Londrina (JDO)", country: "Brasil" },
+  { iata: "AJU", city: "Aracaju", name: "Aracaju (AJU)", country: "Brasil" },
+  { iata: "THE", city: "Teresina", name: "Teresina (THE)", country: "Brasil" },
+  { iata: "MAE", city: "Maceió", name: "Zumbi dos Palmares (MAE)", country: "Brasil" },
+  { iata: "NAT", city: "Natal", name: "Augusto Severo (NAT)", country: "Brasil" },
+  { iata: "MCP", city: "Maceió", name: "Maceió (MCP)", country: "Brasil" },
+  { iata: "VCP", city: "Campinas", name: "Viracopos (VCP)", country: "Brasil" },
+  { iata: "RAF", city: "Ribeirão Preto", name: "Ribeirão Preto (RAF)", country: "Brasil" },
+  { iata: "IGU", city: "Foz do Iguaçu", name: "Cataratas do Iguaçu (IGU)", country: "Brasil" },
+  // Aeroportos internacionais
+  { iata: "LAX", city: "Los Angeles", name: "Los Angeles Intl (LAX)", country: "EUA" },
+  { iata: "JFK", city: "Nova York", name: "John F. Kennedy (JFK)", country: "EUA" },
+  { iata: "CDG", city: "Paris", name: "Charles de Gaulle (CDG)", country: "França" },
+  { iata: "LHR", city: "Londres", name: "Heathrow (LHR)", country: "Reino Unido" },
+  { iata: "NRT", city: "Tóquio", name: "Narita (NRT)", country: "Japão" },
+  { iata: "HND", city: "Tóquio", name: "Haneda (HND)", country: "Japão" },
+  { iata: "SYD", city: "Sydney", name: "Sydney (SYD)", country: "Austrália" },
+  { iata: "MEL", city: "Melbourne", name: "Melbourne (MEL)", country: "Austrália" },
+];
+
+export async function searchLocations(query: string): Promise<LocationOption[]> {
+  if (!query || query.length < 2) return [];
+  
+  try {
+    const searchQuery = query.toLowerCase();
+    
+    // Filtra da lista local primeiro
+    const localResults = MAJOR_AIRPORTS.filter((airport) => {
+      return (
+        airport.iata.toLowerCase().includes(searchQuery) ||
+        airport.city.toLowerCase().includes(searchQuery) ||
+        airport.name.toLowerCase().includes(searchQuery) ||
+        airport.country.toLowerCase().includes(searchQuery)
+      );
+    });
+
+    // Se encontrou resultados locais, retorna
+    if (localResults.length > 0) {
+      console.log(`[LocationSearch] Encontrados ${localResults.length} aeroportos locais para "${query}"`);
+      return localResults.slice(0, 10);
+    }
+
+    // Se não encontrou localmente, tenta API (fallback)
+    console.log(`[LocationSearch] Buscando na API para "${query}"`);
+    const url = `https://serpapi.com/search.json?engine=google_flights&q=${encodeURIComponent(query)}&type=1&api_key=${process.env.SERPAPI_KEY}`;
+    
+    const res = await fetch(url, { 
+      signal: AbortSignal.timeout(5000) // Timeout de 5s
+    });
+    
+    if (!res.ok) {
+      console.warn(`[LocationSearch] API retornou status ${res.status}`);
+      return [];
+    }
+
+    const data = await res.json();
+    console.log(`[LocationSearch] API response:`, data);
+
+    const locations: LocationOption[] = [];
+    
+    // Tenta extrair de suggestions
+    if (data.best_flights) {
+      data.best_flights.forEach((flight: any) => {
+        if (flight.departure_airport?.id) {
+          locations.push({
+            iata: flight.departure_airport.id,
+            name: flight.departure_airport.name || "",
+            city: flight.departure_airport.city || "",
+            country: flight.departure_airport.country || "",
+          });
+        }
+        if (flight.arrival_airport?.id) {
+          locations.push({
+            iata: flight.arrival_airport.id,
+            name: flight.arrival_airport.name || "",
+            city: flight.arrival_airport.city || "",
+            country: flight.arrival_airport.country || "",
+          });
+        }
+      });
+    }
+
+    // Remove duplicatas
+    const uniqueLocations = Array.from(
+      new Map(locations.map((loc) => [loc.iata, loc])).values()
+    );
+
+    return uniqueLocations.slice(0, 10);
+  } catch (error) {
+    console.error("[LocationSearch] Erro ao buscar locais:", error);
+    // Retorna resultados vazios ao invés de falhar completamente
+    return [];
+  }
+}

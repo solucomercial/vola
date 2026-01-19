@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { travelRequests, notifications, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { fetchFlightOffers, fetchHotelOffers, fetchCarOffers } from "@/lib/travel-api";
+import { fetchFlightOffers, fetchHotelOffers, fetchCarOffers, searchLocations } from "@/lib/travel-api";
 
 // Função para obter usuário por ID
 export async function getUserAction(userId: string) {
@@ -92,16 +92,37 @@ export async function searchOptionsAction(type: string, origin: string, destinat
   return [];
 }
 
-export async function createTravelRequestAction(data: any) {
+export async function createTravelRequestAction(data: {
+  userId: string;
+  userName: string;
+  type: "flight" | "hotel" | "car";
+  origin: string | null;
+  destination: string;
+  departureDate: string;
+  returnDate: string;
+  costCenter: string;
+  reason: string;
+  selectedOption: any;
+  alternatives: any[];
+}) {
   try {
     // 1. Cria a solicitação principal
-    const [newReq] = await db.insert(travelRequests).values({
-      ...data,
+    const newReqResult = await db.insert(travelRequests).values({
+      userId: data.userId,
+      userName: data.userName,
+      type: data.type,
+      origin: data.origin,
+      destination: data.destination,
       departureDate: new Date(data.departureDate),
       returnDate: new Date(data.returnDate),
+      costCenter: data.costCenter,
+      reason: data.reason,
+      selectedOption: data.selectedOption,
+      alternatives: data.alternatives,
       bookingUrl: data.selectedOption.bookingUrl || null,
       status: "pending",
     }).returning();
+    const newReq = Array.isArray(newReqResult) ? newReqResult[0] : newReqResult;
 
     // 2. Tenta enviar notificações (encapsulado para não quebrar o fluxo principal)
     try {
@@ -205,5 +226,100 @@ export async function updateRequestOptionAction(requestId: string, selectedOptio
   } catch (error) {
     console.error("Erro ao atualizar opção da solicitação:", error);
     return { success: false };
+  }
+}
+// Função para buscar locais (Server Action)
+export async function searchLocationsAction(query: string) {
+  try {
+    console.log(`[Server Action] searchLocationsAction chamada com query: "${query}"`);
+    const locations = await searchLocations(query);
+    console.log(`[Server Action] Retornando ${locations.length} locais`);
+    return locations;
+  } catch (error) {
+    console.error("[Server Action] Erro ao buscar locais:", error);
+    return [];
+  }
+}
+
+// Interface para item do carrinho
+export interface CartItem {
+  type: "flight" | "hotel" | "car";
+  origin: string | null;
+  destination: string;
+  departureDate: string;
+  returnDate: string;
+  costCenter: string;
+  reason: string;
+  selectedOption: any;
+  alternatives: any[];
+}
+
+// Função para submeter carrinho completo
+export async function submitCartAction(cartItems: CartItem[], userId: string, userName: string) {
+  try {
+    if (cartItems.length === 0) {
+      return { success: false, error: "Carrinho vazio" };
+    }
+
+    // 1. Cria um pedido pai (request vazio para vincular os itens)
+    const parentRequestResult = await db.insert(travelRequests).values({
+      userId,
+      userName,
+      type: "flight", // tipo dummy para o pai
+      destination: "Múltiplos Destinos",
+      departureDate: new Date(),
+      returnDate: new Date(),
+      costCenter: "CART",
+      reason: "Carrinho de Viagem com Múltiplos Itens",
+      selectedOption: { items: cartItems.length },
+      alternatives: [],
+      status: "pending",
+    }).returning();
+    const parentRequest = Array.isArray(parentRequestResult) ? parentRequestResult[0] : parentRequestResult;
+
+    // 2. Cria um request para cada item do carrinho vinculado ao pai
+    const childRequestsPromises = cartItems.map(async (item) => {
+      const newReqResult = await db.insert(travelRequests).values({
+        userId,
+        userName,
+        type: item.type,
+        origin: item.origin,
+        destination: item.destination,
+        departureDate: new Date(item.departureDate),
+        returnDate: new Date(item.returnDate),
+        costCenter: item.costCenter,
+        reason: item.reason,
+        selectedOption: item.selectedOption,
+        alternatives: item.alternatives,
+        bookingUrl: item.selectedOption.bookingUrl || null,
+        parentRequestId: parentRequest.id,
+        status: "pending",
+      }).returning();
+      return Array.isArray(newReqResult) ? newReqResult[0] : newReqResult;
+    });
+    const childRequests = await Promise.all(childRequestsPromises);
+
+    // 3. Cria notificações para aprovadores
+    try {
+      const admins = await db.select().from(users).where(eq(users.role, "approver"));
+      if (admins.length > 0) {
+        const notifs = admins.map(admin => ({
+          userId: admin.id,
+          type: "new_request" as const,
+          title: "Novo Carrinho de Viagem",
+          message: `${userName} submeteu um carrinho com ${cartItems.length} item(ns) de viagem.`,
+          requestId: parentRequest.id
+        }));
+        await db.insert(notifications).values(notifs);
+      }
+    } catch (notifError) {
+      console.error("Erro ao gerar notificações (não crítico):", notifError);
+    }
+
+    revalidatePath("/requests");
+    return { success: true, parentRequestId: parentRequest.id, childRequests };
+  } catch (error) {
+    console.error("Erro ao submeter carrinho:", error);
+    return { success: false, error: "Erro ao processar carrinho" };
   }
 }
