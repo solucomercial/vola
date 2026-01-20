@@ -6,6 +6,138 @@ import { travelRequests, notifications, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { fetchFlightOffers, fetchHotelOffers, fetchCarOffers, searchLocations } from "@/lib/travel-api";
+import { Resend } from "resend";
+
+// Inicializa Resend com a chave de API
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Função auxiliar para enviar email de aprovação
+async function sendApprovalEmail(approverEmail: string, requesterName: string, requestId: string, cartItems: any[]) {
+  try {
+    const approveUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/approve?requestId=${requestId}&action=approve`;
+    const rejectUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/approve?requestId=${requestId}&action=reject`;
+
+    const itemsSummary = cartItems.map((item, idx) => `
+      <tr style="border-bottom: 1px solid #e5e7eb;">
+        <td style="padding: 12px; text-align: left;">${idx + 1}. ${item.type === 'flight' ? `${item.origin} → ${item.destination}` : item.destination}</td>
+        <td style="padding: 12px; text-align: center;">${new Date(item.departureDate).toLocaleDateString('pt-BR')}</td>
+        <td style="padding: 12px; text-align: right;">R$ ${item.selectedOption.price.toLocaleString('pt-BR')}</td>
+      </tr>
+    `).join('');
+
+    const totalPrice = cartItems.reduce((sum, item) => sum + (item.selectedOption.price || 0), 0);
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif; }
+            .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 32px; text-align: center; }
+            .header h1 { margin: 0; font-size: 24px; font-weight: 600; }
+            .content { padding: 32px; }
+            .section { margin: 24px 0; }
+            .section-title { font-size: 16px; font-weight: 600; color: #1f2937; margin-bottom: 12px; }
+            .info-box { background: #f3f4f6; border-left: 4px solid #667eea; padding: 16px; border-radius: 4px; margin: 12px 0; }
+            .info-box p { margin: 0; color: #374151; font-size: 14px; }
+            .info-box strong { color: #1f2937; }
+            table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+            table th { background: #f9fafb; padding: 12px; text-align: left; font-weight: 600; color: #374151; font-size: 14px; border-bottom: 2px solid #e5e7eb; }
+            .total-row { background: #f0f4ff; font-weight: 600; color: #667eea; padding: 12px; text-align: right; }
+            .button-group { display: flex; gap: 12px; margin-top: 24px; justify-content: center; }
+            .button { display: inline-block; padding: 12px 32px; border-radius: 6px; font-weight: 600; text-decoration: none; font-size: 14px; }
+            .button-approve { background: #10b981; color: white; }
+            .button-approve:hover { background: #059669; }
+            .button-reject { background: #ef4444; color: white; }
+            .button-reject:hover { background: #dc2626; }
+            .footer { background: #f9fafb; padding: 24px; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>✈️ Nova Solicitação de Viagem</h1>
+            </div>
+            <div class="content">
+              <div class="section">
+                <p style="margin: 0; color: #374151; font-size: 16px;">Olá,</p>
+                <p style="margin: 12px 0; color: #6b7280;">Uma nova solicitação de viagem foi submetida por <strong>${requesterName}</strong> e aguarda sua aprovação.</p>
+              </div>
+
+              <div class="section">
+                <div class="section-title">Itens Solicitados</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Trajeto/Destino</th>
+                      <th>Data</th>
+                      <th>Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${itemsSummary}
+                    <tr class="total-row">
+                      <td colspan="2">TOTAL</td>
+                      <td>R$ ${totalPrice.toLocaleString('pt-BR')}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="section">
+                <div class="section-title">Motivos das Solicitações</div>
+                ${cartItems.map((item, idx) => `
+                  <div class="info-box">
+                    <p><strong>Item ${idx + 1}:</strong> ${item.reason}</p>
+                  </div>
+                `).join('')}
+              </div>
+
+              <div class="section" style="text-align: center;">
+                <p style="margin: 0; color: #6b7280; font-size: 14px; margin-bottom: 20px;">Por favor, revise os detalhes e tome uma decisão:</p>
+                <div class="button-group">
+                  <a href="${approveUrl}" class="button button-approve">✓ Aprovar</a>
+                  <a href="${rejectUrl}" class="button button-reject">✗ Rejeitar</a>
+                </div>
+              </div>
+
+              <div class="section" style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 4px; margin-top: 20px;">
+                <p style="margin: 0; color: #92400e; font-size: 14px;">
+                  <strong>⚠️ Nota:</strong> Os links acima expiram em 30 dias. Acesse o painel de análise para obter mais detalhes.
+                </p>
+              </div>
+            </div>
+
+            <div class="footer">
+              <p style="margin: 0; margin-bottom: 8px;">Este é um email automático. Por favor, não responda.</p>
+              <p style="margin: 0;">Sistema de Gestão de Viagens © 2026</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const response = await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL || 'noreply@vola.com',
+      to: approverEmail,
+      subject: `Nova Solicitação de Viagem - ${requesterName}`,
+      html: htmlContent,
+    });
+
+    if (response.error) {
+      console.error("[sendApprovalEmail] Erro ao enviar email:", response.error);
+      return false;
+    }
+
+    console.log(`[sendApprovalEmail] Email enviado com sucesso para ${approverEmail}`);
+    return true;
+  } catch (error) {
+    console.error("[sendApprovalEmail] Erro:", error);
+    return false;
+  }
+}
 
 // Função para obter usuário por ID
 export async function getUserAction(userId: string) {
@@ -81,9 +213,20 @@ export async function getOverviewDataAction() {
   }
 }
 
-export async function searchOptionsAction(type: string, origin: string, destination: string, date: string, returnDate: string) {
+export async function searchOptionsAction(type: string, origin: string, destination: string, date: string, returnDate: string, isRoundTrip: boolean = false) {
   const fmtDate = new Date(date).toISOString().split('T')[0];
   const fmtReturnDate = new Date(returnDate).toISOString().split('T')[0];
+  
+  if (type === 'flight' && isRoundTrip) {
+    // Para round-trip, busca ida E volta em paralelo
+    const [outboundFlights, returnFlights] = await Promise.all([
+      fetchFlightOffers(origin, destination, fmtDate, fmtReturnDate, "outbound"),
+      fetchFlightOffers(destination, origin, fmtReturnDate, fmtDate, "return")
+    ]);
+    
+    // Combina e ordena
+    return [...outboundFlights, ...returnFlights];
+  }
   
   if (type === 'flight') return await fetchFlightOffers(origin, destination, fmtDate, fmtReturnDate);
   if (type === 'hotel') return await fetchHotelOffers(destination, fmtDate, fmtReturnDate);
@@ -299,21 +442,32 @@ export async function submitCartAction(cartItems: CartItem[], userId: string, us
     });
     const childRequests = await Promise.all(childRequestsPromises);
 
-    // 3. Cria notificações para aprovadores
+    // 3. Cria notificações para aprovadores e envia emails
     try {
-      const admins = await db.select().from(users).where(eq(users.role, "approver"));
-      if (admins.length > 0) {
-        const notifs = admins.map(admin => ({
-          userId: admin.id,
+      const approvers = await db.select().from(users).where(eq(users.role, "approver"));
+      if (approvers.length > 0) {
+        const notifs = approvers.map(approver => ({
+          userId: approver.id,
           type: "new_request" as const,
           title: "Novo Carrinho de Viagem",
           message: `${userName} submeteu um carrinho com ${cartItems.length} item(ns) de viagem.`,
           requestId: parentRequest.id
         }));
         await db.insert(notifications).values(notifs);
+
+        // Envia emails para todos os aprovadores em paralelo
+        const emailPromises = approvers
+          .filter(approver => approver.email) // Filtra apenas aprovadores com email
+          .map(approver => 
+            sendApprovalEmail(approver.email, userName, parentRequest.id, cartItems)
+          );
+        
+        const emailResults = await Promise.allSettled(emailPromises);
+        const successCount = emailResults.filter(r => r.status === 'fulfilled' && r.value).length;
+        console.log(`[submitCartAction] ${successCount}/${emailResults.length} emails enviados com sucesso`);
       }
     } catch (notifError) {
-      console.error("Erro ao gerar notificações (não crítico):", notifError);
+      console.error("Erro ao gerar notificações/emails (não crítico):", notifError);
     }
 
     revalidatePath("/requests");

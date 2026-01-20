@@ -24,8 +24,10 @@ import {
   Eye, 
   ArrowRight,
   X,
-  Wallet
+  Wallet,
+  MapPin
 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { Suspense } from "react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -59,6 +61,11 @@ function TravelRequestForm() {
   const [visibleCount, setVisibleCount] = useState(5)
   const [viewingOption, setViewingOption] = useState<TravelOption | null>(null)
   
+  // Estados de seleção em duas etapas (ida/volta)
+  const [tripMode, setTripMode] = useState<"one-way" | "round-trip">("round-trip")
+  const [outboundOption, setOutboundOption] = useState<TravelOption | null>(null)
+  const [returnOption, setReturnOption] = useState<TravelOption | null>(null)
+  
   // Estados do carrinho
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [showCheckout, setShowCheckout] = useState(false)
@@ -73,27 +80,79 @@ function TravelRequestForm() {
   }
 
   const handleSearch = async () => {
-    if (!destination || !departureDate || !returnDate || !costCenter) return
-    if (type === "flight" && !origin) return
+    // Validações básicas obrigatórias
+    if (!destination || !departureDate || !returnDate || !costCenter) {
+      toast.error("Preencha todos os campos obrigatórios", {
+        description: "Destino, datas e centro de custo são obrigatórios"
+      })
+      return
+    }
+
+    // Validações específicas por tipo
+    if (type === "flight" && !origin) {
+      toast.error("Origem não preenchida", {
+        description: "Selecione a origem (aeroporto de partida)"
+      })
+      return
+    }
+
+    if (type === "car") {
+      // Validação adicional para carros
+      const departDate = new Date(departureDate)
+      const returnDate_obj = new Date(returnDate)
+      
+      if (departDate >= returnDate_obj) {
+        toast.error("Datas inválidas", {
+          description: "A data de devolução deve ser posterior à de retirada"
+        })
+        return
+      }
+
+      if (!destination || destination.trim().length === 0) {
+        toast.error("Localização inválida", {
+          description: "Informe a cidade ou localidade para retirada do carro"
+        })
+        return
+      }
+    }
 
     setIsSearching(true)
     setVisibleCount(5)
-    setSelectedOptionId("") 
+    setSelectedOptionId("")
     try {
-      const results = await searchOptionsAction(type, origin, destination, departureDate, returnDate)
+      const isRoundTrip = type === "flight" && tripMode === "round-trip"
+      const results = await searchOptionsAction(type, origin, destination, departureDate, returnDate, isRoundTrip)
       setOptions(results)
       if (results.length > 0) {
-        toast.success(`${results.length} opções encontradas!`, {
-          description: `Escolha a melhor opção de ${type === "flight" ? "voo" : type === "hotel" ? "hotel" : "locação de carro"}`
-        })
+        let successMessage = `${results.length} opções encontradas!`
+        let description = ""
+        
+        if (type === "flight") {
+          description = isRoundTrip ? "Escolha o voo de ida e volta" : "Escolha seu voo"
+        } else if (type === "hotel") {
+          description = "Escolha sua hospedagem"
+        } else if (type === "car") {
+          // Verifica se tem IDs mockados
+          const isMocked = results.some(r => r.id?.includes('mock'))
+          description = isMocked 
+            ? "Escolha seu veículo (opções de demonstração)"
+            : "Escolha seu veículo"
+        }
+
+        toast.success(successMessage, { description })
       } else {
         toast.info("Nenhuma opção encontrada", {
-          description: "Tente ajustar os critérios de busca"
+          description: type === "car" 
+            ? "Nenhum veículo disponível nesta localização e período. Tente outras datas."
+            : "Tente ajustar os critérios de busca"
         })
       }
     } catch (error) {
       console.error("Erro ao pesquisar:", error)
-      toast.error("Erro ao pesquisar opções", {
+      const errorMessage = type === "car"
+        ? "Erro ao buscar carros. Verifique se a localização está correta."
+        : "Erro ao pesquisar opções"
+      toast.error(errorMessage, {
         description: "Tente novamente em alguns momentos"
       })
     } finally {
@@ -102,13 +161,64 @@ function TravelRequestForm() {
   }
 
   const handleSelectFromDialog = (optionId: string) => {
-    setSelectedOptionId(optionId)
+    if (type === "flight" && tripMode === "round-trip") {
+      // Para round-trip, chama handleSelectOption que sabe qual é (outbound/return)
+      handleSelectOption(optionId)
+    } else {
+      // Para one-way ou outro tipo, apenas marca como selecionado
+      setSelectedOptionId(optionId)
+    }
     setViewingOption(null) 
   }
 
+  const handleSelectOption = (optionId: string) => {
+    const selectedOption = options.find((o) => o.id === optionId)
+    if (!selectedOption) return
+
+    if (type === "flight" && tripMode === "round-trip") {
+      if (selectedOption.legType === "outbound") {
+        // Selecionou voo de ida
+        setOutboundOption(selectedOption)
+        toast.success("Voo de ida selecionado!", {
+          description: "Agora escolha o voo de volta"
+        })
+      } else if (selectedOption.legType === "return") {
+        // Selecionou voo de volta
+        setReturnOption(selectedOption)
+        toast.success("Voo de volta selecionado!", {
+          description: "Ambos os voos foram selecionados. Proceda para o carrinho"
+        })
+      }
+      setSelectedOptionId("")
+    } else {
+      // One-way ou não é voo
+      setSelectedOptionId(optionId)
+    }
+  }
+
   const handleAddToCart = async () => {
-    const selectedOption = options.find((o) => o.id === selectedOptionId)
-    if (!selectedOption || !reason) {
+    let finalOption: TravelOption | null = null
+    
+    if (type === "flight" && tripMode === "round-trip") {
+      if (!outboundOption || !returnOption) {
+        toast.error("Erro", { description: "Selecione os voos de ida e volta" })
+        return
+      }
+      // Cria uma opção combinada para round-trip
+      finalOption = {
+        ...outboundOption,
+        details: `${outboundOption.details} + ${returnOption.details}`,
+        price: (outboundOption.price || 0) + (returnOption.price || 0)
+      }
+    } else {
+      if (!selectedOptionId) {
+        toast.error("Erro", { description: "Selecione uma opção" })
+        return
+      }
+      finalOption = options.find((o) => o.id === selectedOptionId) || null
+    }
+
+    if (!finalOption || !reason) {
       toast.error("Erro", { description: "Selecione uma opção e descreva a justificativa" })
       return
     }
@@ -122,29 +232,29 @@ function TravelRequestForm() {
       costCenter,
       reason,
       selectedOption: {
-        ...selectedOption,
-        id: selectedOption.id,
-        provider: selectedOption.provider,
-        price: selectedOption.price,
-        details: selectedOption.details,
-        bookingUrl: selectedOption.bookingUrl,
-        departureTime: selectedOption.departureTime,
-        arrivalTime: selectedOption.arrivalTime,
-        flightNumber: selectedOption.flightNumber,
-        airplane: selectedOption.airplane,
-        legroom: selectedOption.legroom,
-        amenities: selectedOption.amenities,
-        airlineLogo: selectedOption.airlineLogo,
-        departureAirport: selectedOption.departureAirport,
-        arrivalAirport: selectedOption.arrivalAirport,
-        images: selectedOption.images,
-        rating: selectedOption.rating,
-        reviewsCount: selectedOption.reviewsCount,
-        locationDetails: selectedOption.locationDetails,
-        hotelAmenities: selectedOption.hotelAmenities,
+        ...finalOption,
+        id: finalOption.id,
+        provider: finalOption.provider,
+        price: finalOption.price,
+        details: finalOption.details,
+        bookingUrl: finalOption.bookingUrl,
+        departureTime: finalOption.departureTime,
+        arrivalTime: finalOption.arrivalTime,
+        flightNumber: finalOption.flightNumber,
+        airplane: finalOption.airplane,
+        legroom: finalOption.legroom,
+        amenities: finalOption.amenities,
+        airlineLogo: finalOption.airlineLogo,
+        departureAirport: finalOption.departureAirport,
+        arrivalAirport: finalOption.arrivalAirport,
+        images: finalOption.images,
+        rating: finalOption.rating,
+        reviewsCount: finalOption.reviewsCount,
+        locationDetails: finalOption.locationDetails,
+        hotelAmenities: finalOption.hotelAmenities,
       },
       alternatives: options
-        .filter((o) => o.id !== selectedOptionId)
+        .filter((o) => o.id !== finalOption?.id)
         .map(alt => ({
           ...alt,
           id: alt.id,
@@ -174,9 +284,11 @@ function TravelRequestForm() {
       description: `${type === "flight" ? "Voo" : type === "hotel" ? "Hotel" : "Carro"} adicionado com sucesso`
     })
 
-    // Limpa o formulário
+    // Reseta o formulário
     setOptions([])
     setSelectedOptionId("")
+    setOutboundOption(null)
+    setReturnOption(null)
     setDestination("")
     setOrigin("")
     setDepartureDate("")
@@ -236,7 +348,9 @@ function TravelRequestForm() {
         </div>
 
         <Card>
-          <CardHeader><CardTitle>Tipo de Serviço</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>Tipo de Serviço</CardTitle>
+          </CardHeader>
           <CardContent>
             <Tabs value={type} onValueChange={handleTypeChange}>
               <TabsList className="grid w-full grid-cols-3">
@@ -245,6 +359,28 @@ function TravelRequestForm() {
                 <TabsTrigger value="car" className="gap-2"><Car className="h-4 w-4" />Carro</TabsTrigger>
               </TabsList>
             </Tabs>
+
+            {type === "flight" && (
+              <div className="mt-4 pt-4 border-t space-y-2">
+                <Label>Tipo de Viagem</Label>
+                <div className="flex gap-3">
+                  <Button 
+                    variant={tripMode === "round-trip" ? "default" : "outline"}
+                    onClick={() => setTripMode("round-trip")}
+                    className="flex-1"
+                  >
+                    Ida e Volta
+                  </Button>
+                  <Button 
+                    variant={tripMode === "one-way" ? "default" : "outline"}
+                    onClick={() => setTripMode("one-way")}
+                    className="flex-1"
+                  >
+                    Somente Ida
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -275,18 +411,39 @@ function TravelRequestForm() {
                     placeholder="Ex: Rio de Janeiro - Galeão (GIG)"
                   />
                 ) : (
-                  <Input value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="Ex: São Paulo" />
+                  <>
+                    <Input 
+                      value={destination} 
+                      onChange={(e) => setDestination(e.target.value)} 
+                      placeholder={type === "car" ? "Ex: São Paulo, Rio de Janeiro" : "Ex: São Paulo"}
+                    />
+                    {type === "car" && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        💡 Cidades suportadas: São Paulo, Rio de Janeiro, Belo Horizonte, Brasília, Salvador, Porto Alegre, Curitiba, entre outras
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>{type === "hotel" ? "Check-in" : "Partida / Retirada"}</Label>
-                <Input type="date" value={departureDate} onChange={(e) => setDepartureDate(e.target.value)} />
+                <Label>{type === "hotel" ? "Check-in" : type === "car" ? "Data de Retirada" : "Partida"}</Label>
+                <Input 
+                  type="date" 
+                  value={departureDate} 
+                  onChange={(e) => setDepartureDate(e.target.value)}
+                  required
+                />
               </div>
               <div className="space-y-2">
-                <Label>{type === "hotel" ? "Check-out" : "Retorno / Devolução"}</Label>
-                <Input type="date" value={returnDate} onChange={(e) => setReturnDate(e.target.value)} />
+                <Label>{type === "hotel" ? "Check-out" : type === "car" ? "Data de Devolução" : "Retorno"}</Label>
+                <Input 
+                  type="date" 
+                  value={returnDate} 
+                  onChange={(e) => setReturnDate(e.target.value)}
+                  required
+                />
               </div>
             </div>
             <div className="space-y-2">
@@ -312,54 +469,177 @@ function TravelRequestForm() {
                 <p className="text-xs text-muted-foreground">Exibindo {Math.min(visibleCount, options.length)} de {options.length}</p>
               </div>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {options.slice(0, visibleCount).map((option) => {
-                const isSelected = selectedOptionId === option.id
-                return (
-                  <div 
-                    key={option.id} 
-                    onClick={() => setViewingOption(option)}
-                    className={`flex cursor-pointer items-center gap-4 rounded-lg border p-4 transition-all hover:shadow-md ${isSelected ? "border-primary bg-primary/5 shadow-sm" : "border-border hover:bg-secondary/50"}`}
-                  >
-                    <Avatar className="h-10 w-10 border bg-white shrink-0">
-                      <AvatarImage src={option.airlineLogo} alt={option.provider} className="object-contain p-1" />
-                      <AvatarFallback>{option.provider.substring(0, 2).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="font-semibold text-lg">{option.provider}</p>
-                        <p className="text-lg font-bold text-primary">R$ {option.price.toLocaleString("pt-BR")}</p>
-                      </div>
-                      
-                      {type === 'flight' && option.departureTime ? (
-                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{option.departureTime}</span>
-                            <ArrowRight className="h-3 w-3" />
-                            <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{option.arrivalTime}</span>
-                            <span className="text-xs ml-2 truncate max-w-[200px]">{option.details}</span>
-                         </div>
-                      ) : (
-                         <p className="text-sm text-muted-foreground line-clamp-1">{option.details}</p>
-                      )}
+            <CardContent className="space-y-6">
+              {type === "flight" && tripMode === "round-trip" ? (
+                <>
+                  {/* Seção de voos de IDA */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Badge className="bg-blue-600">✈️ IDA</Badge>
+                      <span className="text-sm text-muted-foreground font-medium">
+                        {options.filter(o => o.legType === "outbound").length} opções
+                      </span>
+                      {outboundOption && <Check className="h-4 w-4 text-green-600 ml-auto" />}
                     </div>
+                    <div className="space-y-3">
+                      {options
+                        .filter(o => o.legType === "outbound")
+                        .slice(0, visibleCount)
+                        .map((option) => {
+                          const isSelected = outboundOption?.id === option.id
 
-                    <Button variant={isSelected ? "default" : "secondary"} size="icon" className="shrink-0 pointer-events-none">
-                      {isSelected ? <Check className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </Button>
+                          return (
+                            <div 
+                              key={option.id} 
+                              onClick={() => setViewingOption(option)}
+                              className={`flex cursor-pointer items-center gap-4 rounded-lg border p-4 transition-all hover:shadow-md ${isSelected ? "border-blue-500 bg-blue-50 shadow-sm" : "border-border hover:bg-secondary/50"}`}
+                            >
+                              <Avatar className="h-10 w-10 border bg-white shrink-0">
+                                <AvatarImage src={option.airlineLogo} alt={option.provider} className="object-contain p-1" />
+                                <AvatarFallback>{option.provider.substring(0, 2).toUpperCase()}</AvatarFallback>
+                              </Avatar>
+
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between mb-1">
+                                  <p className="font-semibold text-lg">{option.provider}</p>
+                                  <p className="text-lg font-bold text-blue-600">R$ {option.price.toLocaleString("pt-BR")}</p>
+                                </div>
+                                
+                                {type === 'flight' && option.departureTime ? (
+                                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                      <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{option.departureTime}</span>
+                                      <ArrowRight className="h-3 w-3" />
+                                      <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{option.arrivalTime}</span>
+                                      <span className="text-xs ml-2 truncate max-w-[200px]">{option.details}</span>
+                                   </div>
+                                ) : (
+                                   <p className="text-sm text-muted-foreground line-clamp-1">{option.details}</p>
+                                )}
+                              </div>
+
+                              <Button 
+                                variant={isSelected ? "default" : "secondary"} 
+                                size="icon" 
+                                className="shrink-0 pointer-events-none"
+                              >
+                                {isSelected ? <Check className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                              </Button>
+                            </div>
+                          )
+                        })}
+                    </div>
                   </div>
-                )
-              })}
-              
-              {options.length > visibleCount && (
-                <Button 
-                  variant="ghost" 
-                  className="w-full mt-4 text-muted-foreground hover:text-primary gap-2"
-                  onClick={() => setVisibleCount(prev => prev + 5)}
-                >
-                  <Plus className="h-4 w-4" />
-                  Ver mais resultados ({options.length - visibleCount} restantes)
-                </Button>
+
+                  {/* Seção de voos de VOLTA */}
+                  <div className="pt-4 border-t">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Badge variant="secondary" className="bg-green-100 text-green-700">✈️ VOLTA</Badge>
+                      <span className="text-sm text-muted-foreground font-medium">
+                        {options.filter(o => o.legType === "return").length} opções
+                      </span>
+                      {returnOption && <Check className="h-4 w-4 text-green-600 ml-auto" />}
+                    </div>
+                    <div className="space-y-3">
+                      {options
+                        .filter(o => o.legType === "return")
+                        .slice(0, visibleCount)
+                        .map((option) => {
+                          const isSelected = returnOption?.id === option.id
+
+                          return (
+                            <div 
+                              key={option.id} 
+                              onClick={() => setViewingOption(option)}
+                              className={`flex cursor-pointer items-center gap-4 rounded-lg border p-4 transition-all hover:shadow-md ${isSelected ? "border-green-500 bg-green-50 shadow-sm" : "border-border hover:bg-secondary/50"}`}
+                            >
+                              <Avatar className="h-10 w-10 border bg-white shrink-0">
+                                <AvatarImage src={option.airlineLogo} alt={option.provider} className="object-contain p-1" />
+                                <AvatarFallback>{option.provider.substring(0, 2).toUpperCase()}</AvatarFallback>
+                              </Avatar>
+
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between mb-1">
+                                  <p className="font-semibold text-lg">{option.provider}</p>
+                                  <p className="text-lg font-bold text-green-600">R$ {option.price.toLocaleString("pt-BR")}</p>
+                                </div>
+                                
+                                {type === 'flight' && option.departureTime ? (
+                                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                      <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{option.departureTime}</span>
+                                      <ArrowRight className="h-3 w-3" />
+                                      <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{option.arrivalTime}</span>
+                                      <span className="text-xs ml-2 truncate max-w-[200px]">{option.details}</span>
+                                   </div>
+                                ) : (
+                                   <p className="text-sm text-muted-foreground line-clamp-1">{option.details}</p>
+                                )}
+                              </div>
+
+                              <Button 
+                                variant={isSelected ? "default" : "secondary"} 
+                                size="icon" 
+                                className="shrink-0 pointer-events-none"
+                              >
+                                {isSelected ? <Check className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                              </Button>
+                            </div>
+                          )
+                        })}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* Exibição normal para one-way ou outro tipo */
+                <>
+                  {options.slice(0, visibleCount).map((option) => {
+                    const isSelected = selectedOptionId === option.id
+                    return (
+                      <div 
+                        key={option.id} 
+                        onClick={() => setViewingOption(option)}
+                        className={`flex cursor-pointer items-center gap-4 rounded-lg border p-4 transition-all hover:shadow-md ${isSelected ? "border-primary bg-primary/5 shadow-sm" : "border-border hover:bg-secondary/50"}`}
+                      >
+                        <Avatar className="h-10 w-10 border bg-white shrink-0">
+                          <AvatarImage src={option.airlineLogo} alt={option.provider} className="object-contain p-1" />
+                          <AvatarFallback>{option.provider.substring(0, 2).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="font-semibold text-lg">{option.provider}</p>
+                            <p className="text-lg font-bold text-primary">R$ {option.price.toLocaleString("pt-BR")}</p>
+                          </div>
+                          
+                          {type === 'flight' && option.departureTime ? (
+                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{option.departureTime}</span>
+                                <ArrowRight className="h-3 w-3" />
+                                <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{option.arrivalTime}</span>
+                                <span className="text-xs ml-2 truncate max-w-[200px]">{option.details}</span>
+                             </div>
+                          ) : (
+                             <p className="text-sm text-muted-foreground line-clamp-1">{option.details}</p>
+                          )}
+                        </div>
+
+                        <Button variant={isSelected ? "default" : "secondary"} size="icon" className="shrink-0 pointer-events-none">
+                          {isSelected ? <Check className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </Button>
+                      </div>
+                    )
+                  })}
+                  
+                  {options.length > visibleCount && (
+                    <Button 
+                      variant="ghost" 
+                      className="w-full mt-4 text-muted-foreground hover:text-primary gap-2"
+                      onClick={() => setVisibleCount(prev => prev + 5)}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Ver mais resultados ({options.length - visibleCount} restantes)
+                    </Button>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
@@ -378,6 +658,61 @@ function TravelRequestForm() {
                 </Button>
                 <Button variant="outline" onClick={() => setSelectedOptionId("")}>Trocar Seleção</Button>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {type === "flight" && tripMode === "round-trip" && (outboundOption || returnOption) && (
+          <Card className="border-green-200 bg-green-50 shadow-lg animate-in fade-in-50 slide-in-from-bottom-5">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Check className="h-5 w-5 text-green-600" />
+                {outboundOption && returnOption ? "✅ Ambos os voos selecionados" : outboundOption ? "✈️ Voo de ida selecionado" : "✈️ Voo de volta selecionado"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {outboundOption && (
+                <div className="p-3 bg-white rounded-lg border border-green-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Badge className="mb-2">Ida</Badge>
+                      <p className="font-semibold">{outboundOption.provider}</p>
+                      <p className="text-sm text-muted-foreground">{outboundOption.departureTime} → {outboundOption.arrivalTime}</p>
+                      <p className="text-sm font-bold text-green-600 mt-1">R$ {outboundOption.price.toLocaleString("pt-BR")}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {returnOption && (
+                <div className="p-3 bg-white rounded-lg border border-green-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Badge variant="secondary" className="mb-2">Volta</Badge>
+                      <p className="font-semibold">{returnOption.provider}</p>
+                      <p className="text-sm text-muted-foreground">{returnOption.departureTime} → {returnOption.arrivalTime}</p>
+                      <p className="text-sm font-bold text-green-600 mt-1">R$ {returnOption.price.toLocaleString("pt-BR")}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {outboundOption && returnOption && (
+                <>
+                  <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Descreva o motivo desta solicitação..." rows={3} className="resize-none" />
+                  <div className="flex gap-4 pt-2">
+                    <Button onClick={handleAddToCart} disabled={isSubmitting || !reason} className="flex-1 bg-green-600 hover:bg-green-700">
+                      <Plus className="w-4 h-4 mr-2" />
+                      {isSubmitting ? "Adicionando..." : "Adicionar ao Carrinho"}
+                    </Button>
+                    <Button variant="outline" onClick={() => {
+                      setOutboundOption(null)
+                      setReturnOption(null)
+                      setOptions([])
+                    }}>Trocar Voos</Button>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         )}
