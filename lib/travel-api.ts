@@ -848,10 +848,10 @@ export async function fetchHotelOffers(destination: string, checkIn: string, che
 
     return (data.properties || []).slice(0, 20).map((h: any, index: number) => {
       // Mapeamento de preço robusto para evitar o R$ 0
-      const priceValue = h.rate_per_night?.lowest || 
-                         h.rate_per_night?.extracted_lowest || 
-                         h.total_rate?.lowest || 
+      const priceValue = h.rate_per_night?.extracted_lowest || 
+                         h.rate_per_night?.lowest || 
                          h.total_rate?.extracted_lowest || 
+                         h.total_rate?.lowest || 
                          0;
 
       return {

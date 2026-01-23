@@ -29,13 +29,15 @@ import {
   Plane,
   ChevronDown,
   LogOut,
+  ShoppingCart,
 } from "lucide-react"
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["requester", "approver", "admin"] },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["requester", "approver", "admin", "buyer"] },
   { name: "Solicitações", href: "/requests", icon: FileText, roles: ["requester", "approver", "admin"] },
   { name: "Análise", href: "/analysis", icon: ClipboardCheck, roles: ["approver", "admin"] },
-  { name: "Notificações", href: "/notifications", icon: Bell, roles: ["requester", "approver", "admin"] },
+  { name: "Compras", href: "/purchase", icon: ShoppingCart, roles: ["buyer", "admin"] },
+  { name: "Notificações", href: "/notifications", icon: Bell, roles: ["requester", "approver", "admin", "buyer"] },
   { name: "Visão Geral", href: "/overview", icon: BarChart3, roles: ["approver", "admin"] },
 ]
 
@@ -54,6 +56,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         return "default"
       case "approver":
         return "secondary"
+      case "buyer":
+        return "secondary"
       default:
         return "outline"
     }
@@ -65,6 +69,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         return "Admin"
       case "approver":
         return "Approver"
+      case "buyer":
+        return "Comprador"
       default:
         return "Requester"
     }

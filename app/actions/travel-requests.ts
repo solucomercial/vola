@@ -383,6 +383,51 @@ export async function updateRequestOptionAction(requestId: string, selectedOptio
     return { success: false };
   }
 }
+
+// Função para obter solicitações aprovadas (para tela de compras)
+export async function getApprovedRequestsAction() {
+  try {
+    const results = await db.select().from(travelRequests).where(eq(travelRequests.status, "approved"));
+    // Filtra registros "pai" do carrinho (Múltiplos Destinos)
+    return results.filter(r => r.destination !== "Múltiplos Destinos");
+  } catch (error) {
+    console.error("Erro ao buscar solicitações aprovadas:", error);
+    return [];
+  }
+}
+
+// Função para marcar compra como concluída
+export async function completePurchaseAction(requestId: string, buyerId: string, confirmationCode: string) {
+  try {
+    const [updated] = await db.update(travelRequests)
+      .set({ 
+        status: "purchased", 
+        buyerId: buyerId,
+        purchaseConfirmationCode: confirmationCode
+      })
+      .where(eq(travelRequests.id, requestId))
+      .returning();
+
+    try {
+      await db.insert(notifications).values({
+        userId: updated.userId,
+        type: "system",
+        title: "Viagem Confirmada",
+        message: `A sua viagem para ${updated.destination} foi comprada e confirmada! Código: ${confirmationCode}`,
+        requestId: updated.id
+      });
+    } catch (e) {
+      console.error("Erro na notificação de compra:", e);
+    }
+
+    revalidatePath("/purchase");
+    revalidatePath("/requests");
+    return { success: true };
+  } catch (error) {
+    console.error("Erro ao confirmar compra:", error);
+    return { success: false };
+  }
+}
 // Função para buscar locais (Server Action)
 export async function searchLocationsAction(query: string) {
   try {

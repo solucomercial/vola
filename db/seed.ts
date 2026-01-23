@@ -24,16 +24,19 @@ async function main() {
       email: "carlos@solucoes.com",
       role: "admin" as const,
     },
+    {
+      id: "4",
+      name: "Ana Compradora",
+      email: "ana@solucoes.com",
+      role: "buyer" as const,
+    },
   ];
 
   for (const user of mockUsers) {
     await db
       .insert(users)
       .values(user)
-      .onConflictDoUpdate({
-        target: users.email,
-        set: { name: user.name, role: user.role },
-      });
+      .onConflictDoNothing();
   }
 
   console.log("Seed concluído: Usuários inseridos/atualizados.");

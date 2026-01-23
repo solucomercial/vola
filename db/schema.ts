@@ -2,9 +2,9 @@
 import { pgTable, text, timestamp, jsonb, pgEnum, uuid, boolean } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
-export const roleEnum = pgEnum("user_role", ["requester", "approver", "admin"]);
+export const roleEnum = pgEnum("user_role", ["requester", "approver", "buyer", "admin"]);
 export const typeEnum = pgEnum("request_type", ["flight", "hotel", "car"]);
-export const statusEnum = pgEnum("request_status", ["pending", "approved", "rejected"]);
+export const statusEnum = pgEnum("request_status", ["pending", "approved", "rejected", "purchased"]);
 export const notifTypeEnum = pgEnum("notif_type", ["approval", "rejection", "system", "new_request"]);
 
 export const users = pgTable("users", {
@@ -36,6 +36,8 @@ export const travelRequests = pgTable("travel_requests", {
   approvalCode: text("approval_code"),
   rejectionReason: text("rejection_reason"),
   approverId: text("approver_id"),
+  purchaseConfirmationCode: text("purchase_confirmation_code"),
+  buyerId: text("buyer_id"),
 });
 
 export const notifications = pgTable("notifications", {

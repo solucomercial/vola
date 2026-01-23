@@ -2,6 +2,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { useApp } from "@/context/app-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,10 +21,12 @@ import { RequestTypeIcon } from "@/components/request-type-icon"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ComparisonDialog } from "@/components/comparison-dialog"
 import { format, parseISO } from "date-fns"
-import { Calendar, MapPin, AlertTriangle, CheckCircle2, XCircle, TrendingDown, User, Loader2 } from "lucide-react"
+import { Calendar, MapPin, AlertTriangle, CheckCircle2, XCircle, TrendingDown, User, Loader2, ShieldAlert } from "lucide-react"
 import { approveRequestAction, rejectRequestAction, getPendingRequestsAction, updateRequestOptionAction } from "@/app/actions/travel-requests"
+import { toast } from "sonner"
 
 export default function AnalysisPage() {
+  const router = useRouter()
   const { currentUser } = useApp()
   const [pendingRequests, setPendingRequests] = useState<any[]>([])
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null)
@@ -35,6 +38,16 @@ export default function AnalysisPage() {
   const [comparisonDialogOpen, setComparisonDialogOpen] = useState(false)
   const [requestForComparison, setRequestForComparison] = useState<any | null>(null)
 
+  // Verifica permissão de acesso
+  useEffect(() => {
+    if (currentUser.role !== "admin") {
+      toast.error("Acesso Negado", {
+        description: "Apenas administradores podem acessar esta página"
+      })
+      router.push("/dashboard")
+    }
+  }, [currentUser, router])
+
   // Função para carregar dados reais do banco
   const loadRequests = useCallback(async () => {
     setIsLoading(true)
@@ -44,8 +57,10 @@ export default function AnalysisPage() {
   }, [])
 
   useEffect(() => {
-    loadRequests()
-  }, [loadRequests])
+    if (currentUser.role === "admin") {
+      loadRequests()
+    }
+  }, [loadRequests, currentUser])
 
   const handleApprove = async () => {
     if (!selectedRequest) return

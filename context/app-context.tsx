@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
 
 // Types
-export type UserRole = "requester" | "approver" | "admin"
+export type UserRole = "requester" | "approver" | "admin" | "buyer"
 
 export interface User {
   id: string
@@ -14,7 +14,7 @@ export interface User {
 }
 
 export type RequestType = "flight" | "hotel" | "car"
-export type RequestStatus = "pending" | "approved" | "rejected"
+export type RequestStatus = "pending" | "approved" | "rejected" | "purchased"
 
 export interface TravelOption {
   id: string
@@ -61,6 +61,7 @@ const mockUsers: User[] = [
   { id: "1", name: "João Silva", email: "joao@solucoes.com", role: "requester" },
   { id: "2", name: "Maria Santos", email: "maria@solucoes.com", role: "approver" },
   { id: "3", name: "Carlos Admin", email: "carlos@solucoes.com", role: "admin" },
+  { id: "4", name: "Ana Compradora", email: "ana@solucoes.com", role: "buyer" },
 ]
 
 // Mock Travel Requests

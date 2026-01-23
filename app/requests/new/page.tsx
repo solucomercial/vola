@@ -26,7 +26,8 @@ import {
   X,
   Wallet,
   MapPin,
-  AlertCircle
+  AlertCircle,
+  ArrowUpDown
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Suspense } from "react"
@@ -77,6 +78,7 @@ function TravelRequestForm() {
   const [viewingOption, setViewingOption] = useState<TravelOption | null>(null)
   const [outboundPage, setOutboundPage] = useState(1)
   const [returnPage, setReturnPage] = useState(1)
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | "none">("none")
   const itemsPerPage = 5
   
   // Estados de seleção em duas etapas (ida/volta)
@@ -87,6 +89,16 @@ function TravelRequestForm() {
   // Estados do carrinho
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [showCheckout, setShowCheckout] = useState(false)
+
+  // Função para ordenar opções por preço
+  const getSortedOptions = (opts: TravelOption[]) => {
+    if (sortOrder === "none") return opts
+    return [...opts].sort((a, b) => {
+      const priceA = a.price || 0
+      const priceB = b.price || 0
+      return sortOrder === "asc" ? priceA - priceB : priceB - priceA
+    })
+  }
 
   // Calcula o menor preço disponível
   const lowestPrice = findLowestPrice(options)
@@ -521,7 +533,18 @@ function TravelRequestForm() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Resultados Encontrados ({options.length})</CardTitle>
-                <p className="text-xs text-muted-foreground">Exibindo {Math.min(visibleCount, options.length)} de {options.length}</p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSortOrder(s => s === "asc" ? "desc" : s === "desc" ? "none" : "asc")}
+                    className="gap-2"
+                  >
+                    <ArrowUpDown className="h-4 w-4" />
+                    {sortOrder === "asc" ? "Menor preço" : sortOrder === "desc" ? "Maior preço" : "Ordenar"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">Exibindo {Math.min(visibleCount, options.length)} de {options.length}</p>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -537,8 +560,7 @@ function TravelRequestForm() {
                       {outboundOption && <Check className="h-4 w-4 text-green-600 ml-auto" />}
                     </div>
                     <div className="space-y-3">
-                      {options
-                        .filter(o => o.legType === "outbound")
+                      {getSortedOptions(options.filter(o => o.legType === "outbound"))
                         .slice((outboundPage - 1) * itemsPerPage, outboundPage * itemsPerPage)
                         .map((option) => {
                           const isSelected = outboundOption?.id === option.id
@@ -622,8 +644,7 @@ function TravelRequestForm() {
                       {returnOption && <Check className="h-4 w-4 text-green-600 ml-auto" />}
                     </div>
                     <div className="space-y-3">
-                      {options
-                        .filter(o => o.legType === "return")
+                      {getSortedOptions(options.filter(o => o.legType === "return"))
                         .slice((returnPage - 1) * itemsPerPage, returnPage * itemsPerPage)
                         .map((option) => {
                           const isSelected = returnOption?.id === option.id
@@ -700,7 +721,7 @@ function TravelRequestForm() {
               ) : (
                 /* Exibição normal para one-way ou outro tipo */
                 <>
-                  {options.slice(0, visibleCount).map((option) => {
+                  {getSortedOptions(options).slice(0, visibleCount).map((option) => {
                     const isSelected = selectedOptionId === option.id
                     return (
                       <div 
