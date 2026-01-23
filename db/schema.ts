@@ -25,6 +25,7 @@ export const travelRequests = pgTable("travel_requests", {
   departureDate: timestamp("departure_date").notNull(),
   returnDate: timestamp("return_date").notNull(),
   reason: text("reason").notNull(),
+  justification: text("justification"), // Campo para justificar se não for a opção mais barata
   costCenter: text("cost_center").notNull(),
   status: statusEnum("status").default("pending").notNull(),
   selectedOption: jsonb("selected_option").notNull(),

@@ -230,10 +230,10 @@ export default function AnalysisPage() {
                           onClick={() => handleOpenComparison(request)}
                         >
                           <div className="flex justify-between items-start mb-1">
-                            <p className="font-bold text-primary">{request.selectedOption.provider}</p>
-                            <p className="font-black">R$ {request.selectedOption.price.toLocaleString("pt-BR")}</p>
+                            <p className="font-bold text-primary">{request.selectedOption?.provider || "N/A"}</p>
+                            <p className="font-black">R$ {request.selectedOption?.price?.toLocaleString("pt-BR") || "0"}</p>
                           </div>
-                          <p className="text-xs text-muted-foreground">{request.selectedOption.details}</p>
+                          <p className="text-xs text-muted-foreground">{request.selectedOption?.details || ""}</p>
                         </div>
 
                         {savings > 0 && (

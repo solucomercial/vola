@@ -25,7 +25,8 @@ import {
   ArrowRight,
   X,
   Wallet,
-  MapPin
+  MapPin,
+  AlertCircle
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Suspense } from "react"
@@ -40,6 +41,19 @@ import { HotelInfo } from "@/components/hotel-info"
 import { LocationSearch } from "@/components/location-search"
 import { toast } from "sonner"
 
+// Função auxiliar para encontrar o menor preço
+function findLowestPrice(options: TravelOption[]): number | null {
+  if (!options || options.length === 0) return null
+  const prices = options.map(o => o.price).filter(p => p !== undefined && p !== null)
+  return prices.length > 0 ? Math.min(...prices) : null
+}
+
+// Função para verificar se a justificativa é obrigatória
+function isJustificationRequired(selectedPrice: number | undefined, lowestPrice: number | null): boolean {
+  if (!selectedPrice || !lowestPrice) return false
+  return selectedPrice > lowestPrice
+}
+
 function TravelRequestForm() {
   const router = useRouter()
   const { currentUser } = useApp()
@@ -52,6 +66,7 @@ function TravelRequestForm() {
   const [returnDate, setReturnDate] = useState("")
   const [costCenter, setCostCenter] = useState("")
   const [reason, setReason] = useState("")
+  const [justification, setJustification] = useState("")
 
   // Estados de dados e interface
   const [options, setOptions] = useState<TravelOption[]>([])
@@ -60,6 +75,9 @@ function TravelRequestForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [visibleCount, setVisibleCount] = useState(5)
   const [viewingOption, setViewingOption] = useState<TravelOption | null>(null)
+  const [outboundPage, setOutboundPage] = useState(1)
+  const [returnPage, setReturnPage] = useState(1)
+  const itemsPerPage = 5
   
   // Estados de seleção em duas etapas (ida/volta)
   const [tripMode, setTripMode] = useState<"one-way" | "round-trip">("round-trip")
@@ -70,6 +88,9 @@ function TravelRequestForm() {
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [showCheckout, setShowCheckout] = useState(false)
 
+  // Calcula o menor preço disponível
+  const lowestPrice = findLowestPrice(options)
+
   const handleTypeChange = (newType: string) => {
     setType(newType as any)
     setOptions([])
@@ -77,11 +98,24 @@ function TravelRequestForm() {
     setVisibleCount(5)
     setCostCenter("")
     setReason("")
+    setJustification("")
+    setOutboundPage(1)
+    setReturnPage(1)
   }
 
   const handleSearch = async () => {
     // Validações básicas obrigatórias
-    if (!destination || !departureDate || !returnDate || !costCenter) {
+    const isFlightOneWay = type === "flight" && tripMode === "one-way"
+    
+    if (!destination || !departureDate || !costCenter) {
+      toast.error("Preencha todos os campos obrigatórios", {
+        description: "Destino, datas e centro de custo são obrigatórios"
+      })
+      return
+    }
+
+    // Valida returnDate apenas se não for voo somente ida
+    if (!isFlightOneWay && !returnDate) {
       toast.error("Preencha todos os campos obrigatórios", {
         description: "Destino, datas e centro de custo são obrigatórios"
       })
@@ -223,6 +257,12 @@ function TravelRequestForm() {
       return
     }
 
+    // Valida se justificativa é obrigatória
+    if (isJustificationRequired(finalOption.price, lowestPrice) && !justification) {
+      toast.error("Erro", { description: "Justificativa é obrigatória para opções mais caras" })
+      return
+    }
+
     const newItem: CartItem = {
       type,
       origin: type === "flight" ? origin : null,
@@ -231,6 +271,7 @@ function TravelRequestForm() {
       returnDate,
       costCenter,
       reason,
+      justification: justification || null,
       selectedOption: {
         ...finalOption,
         id: finalOption.id,
@@ -293,6 +334,10 @@ function TravelRequestForm() {
     setOrigin("")
     setDepartureDate("")
     setReturnDate("")
+    setReason("")
+    setJustification("")
+    setOutboundPage(1)
+    setReturnPage(1)
     setReason("")
   }
 
@@ -436,15 +481,25 @@ function TravelRequestForm() {
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label>{type === "hotel" ? "Check-out" : type === "car" ? "Data de Devolução" : "Retorno"}</Label>
+              {(type !== "flight" || tripMode === "round-trip") && (
+                <div className="space-y-2">
+                  <Label>{type === "hotel" ? "Check-out" : type === "car" ? "Data de Devolução" : "Retorno"}</Label>
+                  <Input 
+                    type="date" 
+                    value={returnDate} 
+                    onChange={(e) => setReturnDate(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
+              {type === "flight" && tripMode === "one-way" && (
                 <Input 
                   type="date" 
                   value={returnDate} 
                   onChange={(e) => setReturnDate(e.target.value)}
-                  required
+                  className="hidden"
                 />
-              </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Centro de Custo *</Label>
@@ -484,7 +539,7 @@ function TravelRequestForm() {
                     <div className="space-y-3">
                       {options
                         .filter(o => o.legType === "outbound")
-                        .slice(0, visibleCount)
+                        .slice((outboundPage - 1) * itemsPerPage, outboundPage * itemsPerPage)
                         .map((option) => {
                           const isSelected = outboundOption?.id === option.id
 
@@ -528,6 +583,33 @@ function TravelRequestForm() {
                           )
                         })}
                     </div>
+
+                    {/* Paginação para voos de IDA */}
+                    {Math.ceil(options.filter(o => o.legType === "outbound").length / itemsPerPage) > 1 && (
+                      <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                        <p className="text-sm text-muted-foreground">
+                          Página {outboundPage} de {Math.ceil(options.filter(o => o.legType === "outbound").length / itemsPerPage)}
+                        </p>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setOutboundPage(p => Math.max(1, p - 1))}
+                            disabled={outboundPage === 1}
+                          >
+                            ← Anterior
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setOutboundPage(p => Math.min(Math.ceil(options.filter(o => o.legType === "outbound").length / itemsPerPage), p + 1))}
+                            disabled={outboundPage === Math.ceil(options.filter(o => o.legType === "outbound").length / itemsPerPage)}
+                          >
+                            Próximo →
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Seção de voos de VOLTA */}
@@ -542,7 +624,7 @@ function TravelRequestForm() {
                     <div className="space-y-3">
                       {options
                         .filter(o => o.legType === "return")
-                        .slice(0, visibleCount)
+                        .slice((returnPage - 1) * itemsPerPage, returnPage * itemsPerPage)
                         .map((option) => {
                           const isSelected = returnOption?.id === option.id
 
@@ -586,6 +668,33 @@ function TravelRequestForm() {
                           )
                         })}
                     </div>
+
+                    {/* Paginação para voos de VOLTA */}
+                    {Math.ceil(options.filter(o => o.legType === "return").length / itemsPerPage) > 1 && (
+                      <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                        <p className="text-sm text-muted-foreground">
+                          Página {returnPage} de {Math.ceil(options.filter(o => o.legType === "return").length / itemsPerPage)}
+                        </p>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setReturnPage(p => Math.max(1, p - 1))}
+                            disabled={returnPage === 1}
+                          >
+                            ← Anterior
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setReturnPage(p => Math.min(Math.ceil(options.filter(o => o.legType === "return").length / itemsPerPage), p + 1))}
+                            disabled={returnPage === Math.ceil(options.filter(o => o.legType === "return").length / itemsPerPage)}
+                          >
+                            Próximo →
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </>
               ) : (
@@ -650,9 +759,62 @@ function TravelRequestForm() {
             <CardHeader><CardTitle className="flex items-center gap-2"><Check className="h-5 w-5 text-primary" /> Opção Selecionada & Justificativa</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">Selecionou a opção fornecida por <strong>{options.find(o => o.id === selectedOptionId)?.provider}</strong>. Justifique a sua escolha para o aprovador.</p>
-              <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Descreva o motivo desta solicitação..." rows={3} className="resize-none" />
+              
+              {/* Aviso se não for a opção mais barata */}
+              {isJustificationRequired(options.find(o => o.id === selectedOptionId)?.price, lowestPrice) && (
+                <div className="flex gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-amber-900">Justificativa Obrigatória</p>
+                    <p className="text-sm text-amber-800 mt-1">
+                      Você escolheu uma opção por R$ {options.find(o => o.id === selectedOptionId)?.price.toLocaleString("pt-BR")} quando existe uma opção mais barata por R$ {lowestPrice?.toLocaleString("pt-BR")}. 
+                      Por favor, justifique por que escolheu essa opção mais cara.
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              <div className="space-y-2">
+                <Label>
+                  Motivo da Solicitação
+                  {isJustificationRequired(options.find(o => o.id === selectedOptionId)?.price, lowestPrice) ? (
+                    <span className="text-red-500 ml-1">*</span>
+                  ) : null}
+                </Label>
+                <Textarea 
+                  value={reason} 
+                  onChange={(e) => setReason(e.target.value)} 
+                  placeholder="Descreva o motivo desta solicitação..." 
+                  rows={3} 
+                  className="resize-none" 
+                />
+              </div>
+
+              {/* Campo de justificativa (visível apenas se obrigatório) */}
+              {isJustificationRequired(options.find(o => o.id === selectedOptionId)?.price, lowestPrice) && (
+                <div className="space-y-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <Label htmlFor="justification">
+                    Justificativa para Opção Mais Cara
+                    <span className="text-red-500 ml-1">*</span>
+                  </Label>
+                  <Textarea
+                    id="justification"
+                    value={justification}
+                    onChange={(e) => setJustification(e.target.value)}
+                    placeholder="Explique por que escolheu uma opção mais cara (ex: horário melhor, conexões diretas, comodidade, etc.)..."
+                    rows={3}
+                    className="resize-none"
+                  />
+                  <p className="text-xs text-blue-600 mt-1">Este campo é obrigatório para opções que não são a mais barata disponível.</p>
+                </div>
+              )}
+
               <div className="flex gap-4 pt-2">
-                <Button onClick={handleAddToCart} disabled={isSubmitting || !reason} className="flex-1 bg-blue-500 hover:bg-blue-600">
+                <Button 
+                  onClick={handleAddToCart} 
+                  disabled={isSubmitting || !reason || (isJustificationRequired(options.find(o => o.id === selectedOptionId)?.price, lowestPrice) && !justification)} 
+                  className="flex-1 bg-blue-500 hover:bg-blue-600"
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   {isSubmitting ? "Adicionando..." : "Adicionar ao Carrinho"}
                 </Button>
@@ -699,9 +861,61 @@ function TravelRequestForm() {
 
               {outboundOption && returnOption && (
                 <>
-                  <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Descreva o motivo desta solicitação..." rows={3} className="resize-none" />
+                  {/* Aviso se combinação não for a mais barata */}
+                  {isJustificationRequired((outboundOption.price || 0) + (returnOption.price || 0), lowestPrice) && (
+                    <div className="flex gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-amber-900">Justificativa Obrigatória</p>
+                        <p className="text-sm text-amber-800 mt-1">
+                          O custo total dos voos selecionados (R$ {((outboundOption.price || 0) + (returnOption.price || 0)).toLocaleString("pt-BR")}) é maior que a opção mais barata (R$ {lowestPrice?.toLocaleString("pt-BR")}). 
+                          Por favor, justifique por que escolheu essas opções.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label>
+                      Motivo da Solicitação
+                      {isJustificationRequired((outboundOption.price || 0) + (returnOption.price || 0), lowestPrice) ? (
+                        <span className="text-red-500 ml-1">*</span>
+                      ) : null}
+                    </Label>
+                    <Textarea 
+                      value={reason} 
+                      onChange={(e) => setReason(e.target.value)} 
+                      placeholder="Descreva o motivo desta solicitação..." 
+                      rows={3} 
+                      className="resize-none" 
+                    />
+                  </div>
+
+                  {/* Campo de justificativa (visível apenas se obrigatório) */}
+                  {isJustificationRequired((outboundOption.price || 0) + (returnOption.price || 0), lowestPrice) && (
+                    <div className="space-y-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <Label htmlFor="justification-round">
+                        Justificativa para Opção Mais Cara
+                        <span className="text-red-500 ml-1">*</span>
+                      </Label>
+                      <Textarea
+                        id="justification-round"
+                        value={justification}
+                        onChange={(e) => setJustification(e.target.value)}
+                        placeholder="Explique por que escolheu opções mais caras (ex: horários melhores, menos conexões, comodidade, etc.)..."
+                        rows={3}
+                        className="resize-none"
+                      />
+                      <p className="text-xs text-blue-600 mt-1">Este campo é obrigatório para opções que não são as mais baratas disponíveis.</p>
+                    </div>
+                  )}
+
                   <div className="flex gap-4 pt-2">
-                    <Button onClick={handleAddToCart} disabled={isSubmitting || !reason} className="flex-1 bg-green-600 hover:bg-green-700">
+                    <Button 
+                      onClick={handleAddToCart} 
+                      disabled={isSubmitting || !reason || (isJustificationRequired((outboundOption.price || 0) + (returnOption.price || 0), lowestPrice) && !justification)} 
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                    >
                       <Plus className="w-4 h-4 mr-2" />
                       {isSubmitting ? "Adicionando..." : "Adicionar ao Carrinho"}
                     </Button>

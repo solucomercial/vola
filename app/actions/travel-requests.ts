@@ -119,9 +119,17 @@ async function sendApprovalEmail(approverEmail: string, requesterName: string, r
       </html>
     `;
 
+    // Em desenvolvimento/teste, Resend só permite enviar para o email verificado
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+    const testEmail = process.env.RESEND_TEST_EMAIL || 'guilherme.machado@solucoesterceirizadas.com.br';
+    
+    if (isDevelopment) {
+      console.log(`[sendApprovalEmail] MODO DESENVOLVIMENTO: Email seria enviado para ${approverEmail}, mas será enviado para ${testEmail}`);
+    }
+
     const response = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'noreply@vola.com',
-      to: approverEmail,
+      from: process.env.RESEND_FROM_EMAIL || 'onboarding@solucoesterceirizadas.cloud',
+      to: isDevelopment ? testEmail : approverEmail,
       subject: `Nova Solicitação de Viagem - ${requesterName}`,
       html: htmlContent,
     });
@@ -131,7 +139,7 @@ async function sendApprovalEmail(approverEmail: string, requesterName: string, r
       return false;
     }
 
-    console.log(`[sendApprovalEmail] Email enviado com sucesso para ${approverEmail}`);
+    console.log(`[sendApprovalEmail] Email enviado com sucesso para ${isDevelopment ? testEmail : approverEmail}`);
     return true;
   } catch (error) {
     console.error("[sendApprovalEmail] Erro:", error);
@@ -154,7 +162,8 @@ export async function getUserAction(userId: string) {
 export async function getPendingRequestsAction() {
   try {
     const results = await db.select().from(travelRequests).where(eq(travelRequests.status, "pending"));
-    return results;
+    // Filtra registros "pai" do carrinho (Múltiplos Destinos)
+    return results.filter(r => r.destination !== "Múltiplos Destinos");
   } catch (error) {
     console.error("Erro ao procurar solicitações pendentes:", error);
     return [];
@@ -165,7 +174,8 @@ export async function getPendingRequestsAction() {
 export async function getUserRequestsAction(userId: string) {
   try {
     const results = await db.select().from(travelRequests).where(eq(travelRequests.userId, userId));
-    return results;
+    // Filtra registros "pai" do carrinho (Múltiplos Destinos)
+    return results.filter(r => r.destination !== "Múltiplos Destinos");
   } catch (error) {
     console.error("Erro ao procurar solicitações do usuário:", error);
     return [];
@@ -203,8 +213,9 @@ export async function getOverviewDataAction() {
     const allRequests = await db.select().from(travelRequests);
     const allUsers = await db.select().from(users);
     
+    // Filtra registros "pai" do carrinho (Múltiplos Destinos)
     return {
-      requests: allRequests,
+      requests: allRequests.filter(r => r.destination !== "Múltiplos Destinos"),
       users: allUsers,
     };
   } catch (error) {
@@ -215,22 +226,23 @@ export async function getOverviewDataAction() {
 
 export async function searchOptionsAction(type: string, origin: string, destination: string, date: string, returnDate: string, isRoundTrip: boolean = false) {
   const fmtDate = new Date(date).toISOString().split('T')[0];
-  const fmtReturnDate = new Date(returnDate).toISOString().split('T')[0];
+  const fmtReturnDate = returnDate ? new Date(returnDate).toISOString().split('T')[0] : undefined;
   
   if (type === 'flight' && isRoundTrip) {
     // Para round-trip, busca ida E volta em paralelo
     const [outboundFlights, returnFlights] = await Promise.all([
       fetchFlightOffers(origin, destination, fmtDate, fmtReturnDate, "outbound"),
-      fetchFlightOffers(destination, origin, fmtReturnDate, fmtDate, "return")
+      fetchFlightOffers(destination, origin, fmtReturnDate!, fmtDate, "return")
     ]);
     
     // Combina e ordena
     return [...outboundFlights, ...returnFlights];
   }
   
-  if (type === 'flight') return await fetchFlightOffers(origin, destination, fmtDate, fmtReturnDate);
-  if (type === 'hotel') return await fetchHotelOffers(destination, fmtDate, fmtReturnDate);
-  if (type === 'car') return await fetchCarOffers(destination, fmtDate, fmtReturnDate);
+  // Para one-way, não passa returnDate
+  if (type === 'flight') return await fetchFlightOffers(origin, destination, fmtDate, isRoundTrip ? fmtReturnDate : undefined);
+  if (type === 'hotel') return await fetchHotelOffers(destination, fmtDate, fmtReturnDate || fmtDate);
+  if (type === 'car') return await fetchCarOffers(destination, fmtDate, fmtReturnDate || fmtDate);
   
   return [];
 }
@@ -393,6 +405,7 @@ export interface CartItem {
   returnDate: string;
   costCenter: string;
   reason: string;
+  justification: string | null;
   selectedOption: any;
   alternatives: any[];
 }
@@ -402,6 +415,27 @@ export async function submitCartAction(cartItems: CartItem[], userId: string, us
   try {
     if (cartItems.length === 0) {
       return { success: false, error: "Carrinho vazio" };
+    }
+
+    // Helper para encontrar o menor preço
+    const findLowestPrice = (options: any[]): number | null => {
+      if (!options || options.length === 0) return null;
+      const prices = options.map((o) => o.selectedOption?.price || 0).filter((p) => p > 0);
+      return prices.length > 0 ? Math.min(...prices) : null;
+    };
+
+    // Validação: garantir que justificativa é fornecida se necessário
+    const allPrices = cartItems.map((item) => item.selectedOption?.price || 0);
+    const lowestPrice = Math.min(...allPrices);
+
+    for (const item of cartItems) {
+      const itemPrice = item.selectedOption?.price || 0;
+      if (itemPrice > lowestPrice && !item.justification) {
+        return {
+          success: false,
+          error: `Justificativa obrigatória para o item "${item.destination}" pois ele não é a opção mais barata.`,
+        };
+      }
     }
 
     // 1. Cria um pedido pai (request vazio para vincular os itens)
@@ -429,9 +463,10 @@ export async function submitCartAction(cartItems: CartItem[], userId: string, us
         origin: item.origin,
         destination: item.destination,
         departureDate: new Date(item.departureDate),
-        returnDate: new Date(item.returnDate),
+        returnDate: item.returnDate ? new Date(item.returnDate) : new Date(item.departureDate),
         costCenter: item.costCenter,
         reason: item.reason,
+        justification: item.justification,
         selectedOption: item.selectedOption,
         alternatives: item.alternatives,
         bookingUrl: item.selectedOption.bookingUrl || null,

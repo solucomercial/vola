@@ -327,9 +327,9 @@ export function RequestsContent() {
                       <div className="flex flex-col gap-3 sm:items-end">
                         <div className="text-right">
                           <p className={`text-2xl font-bold ${colors.text}`}>
-                            R$ {request.selectedOption.price.toLocaleString("pt-BR")}
+                            R$ {request.selectedOption?.price?.toLocaleString("pt-BR") || "0"}
                           </p>
-                          <p className="text-xs text-muted-foreground font-medium mt-1">{request.selectedOption.provider}</p>
+                          <p className="text-xs text-muted-foreground font-medium mt-1">{request.selectedOption?.provider || "N/A"}</p>
                         </div>
                         {request.approvalCode && (
                           <div className={`rounded-lg px-3 py-2 backdrop-blur-sm ${colors.bg.split(" ")[0]} bg-gradient-to-r ${colors.bg}`}>
@@ -427,7 +427,7 @@ export function RequestsContent() {
                             </div>
                             <div className="text-right">
                               <p className="text-2xl font-bold text-emerald-600">
-                                R$ {selectedRequest.selectedOption.price.toLocaleString("pt-BR")}
+                                R$ {selectedRequest.selectedOption?.price?.toLocaleString("pt-BR") || "0"}
                               </p>
                             </div>
                           </div>
