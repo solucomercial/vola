@@ -15,7 +15,7 @@ export const users = pgTable("users", {
   avatar: text("avatar"),
 });
 
-export const travelRequests = pgTable("travel_requests", {
+export const travelRequests: any = pgTable("travel_requests", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id").references(() => users.id).notNull(),
   userName: text("user_name").notNull(),
@@ -36,7 +36,7 @@ export const travelRequests = pgTable("travel_requests", {
   approvalCode: text("approval_code"),
   rejectionReason: text("rejection_reason"),
   approverId: text("approver_id"),
-  purchaseConfirmationCode: text("purchase_confirmation_code"),
+  purchaseConfirmationCodes: jsonb("purchase_confirmation_codes"),
   buyerId: text("buyer_id"),
 });
 

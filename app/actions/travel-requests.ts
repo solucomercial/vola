@@ -121,15 +121,18 @@ async function sendApprovalEmail(approverEmail: string, requesterName: string, r
 
     // Em desenvolvimento/teste, Resend só permite enviar para o email verificado
     const isDevelopment = process.env.NODE_ENV !== 'production';
-    const testEmail = process.env.RESEND_TEST_EMAIL || 'guilherme.machado@solucoesterceirizadas.com.br';
+    const testEmails = [
+      'guilherme.machado@solucoesterceirizadas.com.br',
+      'ti@solucoesterceirizadas.com.br'
+    ];
     
     if (isDevelopment) {
-      console.log(`[sendApprovalEmail] MODO DESENVOLVIMENTO: Email seria enviado para ${approverEmail}, mas será enviado para ${testEmail}`);
+      console.log(`[sendApprovalEmail] MODO DESENVOLVIMENTO: Email seria enviado para ${approverEmail}, mas será enviado para ${testEmails.join(', ')}`);
     }
 
     const response = await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL || 'onboarding@solucoesterceirizadas.cloud',
-      to: isDevelopment ? testEmail : approverEmail,
+      to: isDevelopment ? testEmails : approverEmail,
       subject: `Nova Solicitação de Viagem - ${requesterName}`,
       html: htmlContent,
     });
@@ -139,7 +142,7 @@ async function sendApprovalEmail(approverEmail: string, requesterName: string, r
       return false;
     }
 
-    console.log(`[sendApprovalEmail] Email enviado com sucesso para ${isDevelopment ? testEmail : approverEmail}`);
+    console.log(`[sendApprovalEmail] Email enviado com sucesso para ${isDevelopment ? testEmails.join(', ') : approverEmail}`);
     return true;
   } catch (error) {
     console.error("[sendApprovalEmail] Erro:", error);
@@ -397,23 +400,24 @@ export async function getApprovedRequestsAction() {
 }
 
 // Função para marcar compra como concluída
-export async function completePurchaseAction(requestId: string, buyerId: string, confirmationCode: string) {
+export async function completePurchaseAction(requestId: string, buyerId: string, confirmationCodes: string[]) {
   try {
     const [updated] = await db.update(travelRequests)
       .set({ 
         status: "purchased", 
         buyerId: buyerId,
-        purchaseConfirmationCode: confirmationCode
+        purchaseConfirmationCodes: confirmationCodes
       })
       .where(eq(travelRequests.id, requestId))
       .returning();
 
     try {
+      const codesText = confirmationCodes.join(', ')
       await db.insert(notifications).values({
         userId: updated.userId,
         type: "system",
         title: "Viagem Confirmada",
-        message: `A sua viagem para ${updated.destination} foi comprada e confirmada! Código: ${confirmationCode}`,
+        message: `A sua viagem para ${updated.destination} foi comprada e confirmada! Localizadores para check-in: ${codesText}`,
         requestId: updated.id
       });
     } catch (e) {

@@ -40,9 +40,9 @@ export default function AnalysisPage() {
 
   // Verifica permissão de acesso
   useEffect(() => {
-    if (currentUser.role !== "admin") {
+    if (currentUser.role !== "admin" && currentUser.role !== "approver") {
       toast.error("Acesso Negado", {
-        description: "Apenas administradores podem acessar esta página"
+        description: "Apenas administradores e aprovadores podem acessar esta página"
       })
       router.push("/dashboard")
     }
@@ -57,7 +57,7 @@ export default function AnalysisPage() {
   }, [])
 
   useEffect(() => {
-    if (currentUser.role === "admin") {
+    if (currentUser.role === "admin" || currentUser.role === "approver") {
       loadRequests()
     }
   }, [loadRequests, currentUser])

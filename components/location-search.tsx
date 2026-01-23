@@ -69,7 +69,7 @@ export function LocationSearch({
   }
 
   const handleSelectLocation = (location: LocationOption) => {
-    const displayValue = `${location.city}${location.country ? ` (${location.country})` : ""}`
+    const displayValue = `${location.city}${location.state ? ` - ${location.state}` : ""}${location.country ? ` (${location.country})` : ""}`
     setInputValue(displayValue)
     onChange(location.iata, displayValue)
     setSuggestions([])
@@ -180,6 +180,7 @@ export function LocationSearch({
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">
                     {location.city}
+                    {location.state && ` - ${location.state}`}
                     {location.country && ` (${location.country})`}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">

@@ -81,16 +81,24 @@ export default function PurchasePage() {
 
   const handleCompletePurchase = async () => {
     if (!selectedRequest || !confirmationCode.trim()) {
-      toast.error("Preencha o código de confirmação")
+      toast.error("Preencha os códigos de confirmação")
+      return
+    }
+
+    // Converte os códigos separados por vírgula em array
+    const codes = confirmationCode.split(',').map(code => code.trim()).filter(code => code.length > 0)
+
+    if (codes.length === 0) {
+      toast.error("Informe pelo menos um código de confirmação válido")
       return
     }
 
     setIsProcessing(true)
-    const result = await completePurchaseAction(selectedRequest.id, currentUser.id, confirmationCode)
+    const result = await completePurchaseAction(selectedRequest.id, currentUser.id, codes)
     
     if (result.success) {
       toast.success("Compra Confirmada!", {
-        description: "A solicitação foi marcada como comprada"
+        description: `Solicitação marcada como comprada com ${codes.length} localizador${codes.length > 1 ? 'es' : ''}`
       })
       setShowConfirmDialog(false)
       setConfirmationCode("")
@@ -375,21 +383,24 @@ export default function PurchasePage() {
           <DialogHeader>
             <DialogTitle>Confirmar Compra</DialogTitle>
             <DialogDescription>
-              Digite o código do comprovante de compra para confirmar a transação.
+              Digite os códigos de confirmação (localizadores) da compra. Estes códigos serão usados pelo viajante para fazer check-in. Você pode informar múltiplos códigos separados por vírgula.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <label htmlFor="confirmCode" className="text-sm font-medium">
-                Código do Comprovante *
+                Códigos de Confirmação (Localizadores) *
               </label>
               <Input
                 id="confirmCode"
                 type="text"
-                placeholder="Ex: COMP-2026-001234"
+                placeholder="Ex: ABC123, XYZ789"
                 value={confirmationCode}
                 onChange={(e) => setConfirmationCode(e.target.value)}
               />
+              <p className="text-xs text-muted-foreground">
+                💡 Separe múltiplos códigos com vírgula. Estes serão os localizadores para check-in.
+              </p>
             </div>
           </div>
           <DialogFooter>
