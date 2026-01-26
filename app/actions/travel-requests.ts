@@ -473,17 +473,101 @@ export async function submitCartAction(cartItems: CartItem[], userId: string, us
       return prices.length > 0 ? Math.min(...prices) : null;
     };
 
-    // Validação: garantir que justificativa é fornecida se necessário
-    const allPrices = cartItems.map((item) => item.selectedOption?.price || 0);
-    const lowestPrice = Math.min(...allPrices);
-
+    // Validação aprimorada: detecta viagens de ida e volta e valida contra bestCombinedPrice
     for (const item of cartItems) {
       const itemPrice = item.selectedOption?.price || 0;
-      if (itemPrice > lowestPrice && !item.justification) {
-        return {
-          success: false,
-          error: `Justificativa obrigatória para o item "${item.destination}" pois ele não é a opção mais barata.`,
-        };
+      
+      // Verifica se é uma viagem de ida e volta (round-trip)
+      const isRoundTrip = item.returnDate && item.returnDate !== item.departureDate;
+      const isSplitStrategy = item.selectedOption?.legType !== undefined || 
+                             item.alternatives?.some((alt: any) => alt.selectedOption?.legType !== undefined);
+      
+      // Se for voo de ida e volta, aplica nova lógica de validação
+      if (item.type === 'flight' && (isRoundTrip || isSplitStrategy)) {
+        // Busca voos de ida e volta nos alternatives
+        const outboundFlight = item.alternatives?.find((alt: any) => 
+          alt.selectedOption?.legType === 'outbound'
+        );
+        const returnFlight = item.alternatives?.find((alt: any) => 
+          alt.selectedOption?.legType === 'return'
+        );
+        
+        // Se há dados de ida e volta separados
+        if (outboundFlight && returnFlight) {
+          const outboundPrice = outboundFlight.selectedOption?.price || 0;
+          const returnPrice = returnFlight.selectedOption?.price || 0;
+          const totalSelectedPrice = outboundPrice + returnPrice;
+          
+          // Verifica se há estatísticas de preço de referência
+          const bestCombinedPrice = item.selectedOption?.statistics?.bestCombinedPrice;
+          
+          if (bestCombinedPrice !== undefined) {
+            // Compara soma total com o melhor preço combinado
+            if (totalSelectedPrice > bestCombinedPrice && !item.justification) {
+              return {
+                success: false,
+                error: `Justificativa obrigatória para o voo "${item.origin} → ${item.destination}". A combinação selecionada (R$ ${totalSelectedPrice.toFixed(2)}) não é a mais econômica (melhor opção: R$ ${bestCombinedPrice.toFixed(2)}).`,
+              };
+            }
+          } else {
+            // Fallback: validação individual por trecho se não há bestCombinedPrice
+            console.warn(`[submitCartAction] bestCombinedPrice não disponível para ${item.origin} → ${item.destination}, usando validação por trecho`);
+            
+            // Valida ida
+            const allOutboundPrices = item.alternatives
+              ?.filter((alt: any) => alt.selectedOption?.legType === 'outbound')
+              .map((alt: any) => alt.selectedOption?.price || 0)
+              .filter((p: number) => p > 0);
+            
+            if (allOutboundPrices && allOutboundPrices.length > 0) {
+              const lowestOutboundPrice = Math.min(...allOutboundPrices);
+              if (outboundPrice > lowestOutboundPrice && !item.justification) {
+                return {
+                  success: false,
+                  error: `Justificativa obrigatória para o voo de IDA "${item.origin} → ${item.destination}" pois não é a opção mais barata.`,
+                };
+              }
+            }
+            
+            // Valida volta
+            const allReturnPrices = item.alternatives
+              ?.filter((alt: any) => alt.selectedOption?.legType === 'return')
+              .map((alt: any) => alt.selectedOption?.price || 0)
+              .filter((p: number) => p > 0);
+            
+            if (allReturnPrices && allReturnPrices.length > 0) {
+              const lowestReturnPrice = Math.min(...allReturnPrices);
+              if (returnPrice > lowestReturnPrice && !item.justification) {
+                return {
+                  success: false,
+                  error: `Justificativa obrigatória para o voo de VOLTA "${item.destination} → ${item.origin}" pois não é a opção mais barata.`,
+                };
+              }
+            }
+          }
+        } else {
+          // Fallback para formato antigo: validação simples de preço único
+          const allPrices = cartItems.map((ci) => ci.selectedOption?.price || 0);
+          const lowestPrice = Math.min(...allPrices);
+          
+          if (itemPrice > lowestPrice && !item.justification) {
+            return {
+              success: false,
+              error: `Justificativa obrigatória para o item "${item.destination}" pois não é a opção mais barata.`,
+            };
+          }
+        }
+      } else {
+        // Para hotéis, carros, e voos one-way, mantém validação tradicional
+        const allPrices = cartItems.map((ci) => ci.selectedOption?.price || 0);
+        const lowestPrice = Math.min(...allPrices);
+        
+        if (itemPrice > lowestPrice && !item.justification) {
+          return {
+            success: false,
+            error: `Justificativa obrigatória para o item "${item.destination}" pois não é a opção mais barata.`,
+          };
+        }
       }
     }
 

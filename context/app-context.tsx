@@ -293,7 +293,7 @@ interface AppContextType {
   markNotificationRead: (notificationId: string) => void
   getMyRequests: () => TravelRequest[]
   getPendingRequests: () => TravelRequest[]
-  getUnreadNotificationsCount: () => number
+  getUnreadNotificationsCount: () => Promise<number>
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined)
@@ -400,7 +400,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return requests.filter((r) => r.status === "pending")
   }, [requests])
 
-  const getUnreadNotificationsCount = useCallback(() => {
+  const getUnreadNotificationsCount = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/notifications/unread-count?userId=${currentUser.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        return data.count
+      }
+    } catch (error) {
+      console.error("Error fetching unread count:", error)
+    }
+    // Fallback to local state if API fails
     return notifications.filter((n) => n.userId === currentUser.id && !n.read).length
   }, [notifications, currentUser.id])
 

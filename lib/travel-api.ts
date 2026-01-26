@@ -1016,39 +1016,35 @@ export interface LocationOption {
 }
 
 // Lista de principais aeroportos para fallback
+// lib/travel-api.ts
+
+// Lista de principais aeroportos atualizada
 const MAJOR_AIRPORTS: LocationOption[] = [
-  { iata: "GRU", city: "São Paulo", state: "SP", name: "Guarulhos (GRU)", country: "Brasil" },
-  { iata: "CGH", city: "São Paulo", state: "SP", name: "Congonhas (CGH)", country: "Brasil" },
-  { iata: "GIG", city: "Rio de Janeiro", state: "RJ", name: "Galeão (GIG)", country: "Brasil" },
-  { iata: "SDU", city: "Rio de Janeiro", state: "RJ", name: "Santos Dumont (SDU)", country: "Brasil" },
-  { iata: "CNF", city: "Belo Horizonte", state: "MG", name: "Confins (CNF)", country: "Brasil" },
-  { iata: "BSB", city: "Brasília", state: "DF", name: "Brasília (BSB)", country: "Brasil" },
-  { iata: "CWB", city: "Curitiba", state: "PR", name: "Afonso Pena (CWB)", country: "Brasil" },
-  { iata: "POA", city: "Porto Alegre", state: "RS", name: "Salgado Filho (POA)", country: "Brasil" },
-  { iata: "SSA", city: "Salvador", state: "BA", name: "Deputado Luís Eduardo (SSA)", country: "Brasil" },
-  { iata: "REC", city: "Recife", state: "PE", name: "Gilberto Freyre (REC)", country: "Brasil" },
-  { iata: "MCZ", city: "Maceió", state: "AL", name: "Zumbi dos Palmares (MCZ)", country: "Brasil" },
-  { iata: "FOR", city: "Fortaleza", state: "CE", name: "Pinto Martins (FOR)", country: "Brasil" },
-  { iata: "SLZ", city: "São Luís", state: "MA", name: "Marechal Cunha Machado (SLZ)", country: "Brasil" },
-  { iata: "MAO", city: "Manaus", state: "AM", name: "Manaus (MAO)", country: "Brasil" },
-  { iata: "UDI", city: "Uberlândia", state: "MG", name: "Uberlândia (UDI)", country: "Brasil" },
-  { iata: "JPA", city: "João Pessoa", state: "PB", name: "Presidente Castro Pinto (JPA)", country: "Brasil" },
-  { iata: "LDB", city: "Londrina", state: "PR", name: "Londrina (LDB)", country: "Brasil" },
-  { iata: "AJU", city: "Aracaju", state: "SE", name: "Aracaju (AJU)", country: "Brasil" },
-  { iata: "THE", city: "Teresina", state: "PI", name: "Teresina (THE)", country: "Brasil" },
-  { iata: "NAT", city: "Natal", state: "RN", name: "Augusto Severo (NAT)", country: "Brasil" },
-  { iata: "VCP", city: "Campinas", state: "SP", name: "Viracopos (VCP)", country: "Brasil" },
-  { iata: "RAO", city: "Ribeirão Preto", state: "SP", name: "Ribeirão Preto (RAO)", country: "Brasil" },
-  { iata: "IGU", city: "Foz do Iguaçu", state: "PR", name: "Cataratas do Iguaçu (IGU)", country: "Brasil" },
-  // Aeroportos internacionais
-  { iata: "LAX", city: "Los Angeles", name: "Los Angeles Intl (LAX)", country: "EUA" },
-  { iata: "JFK", city: "Nova York", name: "John F. Kennedy (JFK)", country: "EUA" },
-  { iata: "CDG", city: "Paris", name: "Charles de Gaulle (CDG)", country: "França" },
-  { iata: "LHR", city: "Londres", name: "Heathrow (LHR)", country: "Reino Unido" },
-  { iata: "NRT", city: "Tóquio", name: "Narita (NRT)", country: "Japão" },
-  { iata: "HND", city: "Tóquio", name: "Haneda (HND)", country: "Japão" },
-  { iata: "SYD", city: "Sydney", name: "Sydney (SYD)", country: "Austrália" },
-  { iata: "MEL", city: "Melbourne", name: "Melbourne (MEL)", country: "Austrália" },
+  // Sudeste
+  { iata: "GRU", city: "São Paulo", name: "Aeroporto Internacional de Guarulhos", country: "Brasil" },
+  { iata: "CGH", city: "São Paulo", name: "Aeroporto de Congonhas", country: "Brasil" },
+  { iata: "GIG", city: "Rio de Janeiro", name: "Aeroporto Internacional do Galeão", country: "Brasil" },
+  { iata: "SDU", city: "Rio de Janeiro", name: "Aeroporto Santos Dumont", country: "Brasil" },
+  { iata: "CNF", city: "Belo Horizonte", name: "Aeroporto Internacional de Confins", country: "Brasil" },
+  { iata: "VIX", city: "Vitória", name: "Aeroporto Internacional de Vitória", country: "Brasil" },
+  
+  // Sul
+  { iata: "CWB", city: "Curitiba", name: "Aeroporto Internacional Afonso Pena", country: "Brasil" },
+  { iata: "POA", city: "Porto Alegre", name: "Aeroporto Internacional Salgado Filho", country: "Brasil" },
+  { iata: "FLN", city: "Florianópolis", name: "Aeroporto Internacional Hercílio Luz", country: "Brasil" },
+  
+  // Nordeste
+  { iata: "REC", city: "Recife", name: "Aeroporto Internacional do Recife/Guararapes", country: "Brasil" },
+  { iata: "SSA", city: "Salvador", name: "Aeroporto Internacional de Salvador", country: "Brasil" },
+  { iata: "FOR", city: "Fortaleza", name: "Aeroporto Internacional Pinto Martins", country: "Brasil" },
+  
+  // Centro-Oeste
+  { iata: "BSB", city: "Brasília", name: "Aeroporto Internacional de Brasília", country: "Brasil" },
+  { iata: "CGB", city: "Cuiabá", name: "Aeroporto Internacional Marechal Rondon", country: "Brasil" },
+  
+  // Norte
+  { iata: "BEL", city: "Belém", name: "Aeroporto Internacional de Belém/Val-de-Cans", country: "Brasil" },
+  { iata: "MAO", city: "Manaus", name: "Aeroporto Internacional Eduardo Gomes", country: "Brasil" },
 ];
 
 export async function searchLocations(query: string): Promise<LocationOption[]> {

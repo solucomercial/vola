@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -43,12 +43,19 @@ const navigation = [
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
   const pathname = usePathname()
   const { currentUser, setCurrentUser, users, getUnreadNotificationsCount } = useApp()
 
   const filteredNavigation = navigation.filter((item) => item.roles.includes(currentUser.role))
 
-  const unreadCount = getUnreadNotificationsCount()
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      const count = await getUnreadNotificationsCount()
+      setUnreadCount(count)
+    }
+    fetchUnreadCount()
+  }, [currentUser.id, getUnreadNotificationsCount])
 
   const getRoleBadgeVariant = (role: UserRole) => {
     switch (role) {
