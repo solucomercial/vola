@@ -1,13 +1,14 @@
 // app/approval-error/page.tsx
 'use client'
 
+import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertCircle, Home, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 
-export default function ApprovalErrorPage() {
+function ApprovalErrorContent() {
   const searchParams = useSearchParams()
   const reason = searchParams.get('reason') || 'unknown'
 
@@ -68,5 +69,13 @@ export default function ApprovalErrorPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function ApprovalErrorPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-100 flex items-center justify-center">Carregando...</div>}>
+      <ApprovalErrorContent />
+    </Suspense>
   )
 }

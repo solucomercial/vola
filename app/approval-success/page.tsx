@@ -1,13 +1,14 @@
 // app/approval-success/page.tsx
 'use client'
 
+import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Check, X, Home, FileCheck } from 'lucide-react'
 import Link from 'next/link'
 
-export default function ApprovalSuccessPage() {
+function ApprovalSuccessContent() {
   const searchParams = useSearchParams()
   const status = searchParams.get('status') || 'approved'
   const message = searchParams.get('message') || 'Operação concluída'
@@ -74,5 +75,13 @@ export default function ApprovalSuccessPage() {
         `}
       </script>
     </div>
+  )
+}
+
+export default function ApprovalSuccessPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">Carregando...</div>}>
+      <ApprovalSuccessContent />
+    </Suspense>
   )
 }
