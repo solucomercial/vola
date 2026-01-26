@@ -71,6 +71,7 @@ function TravelRequestForm() {
 
   // Estados de dados e interface
   const [options, setOptions] = useState<TravelOption[]>([])
+  const [searchStatistics, setSearchStatistics] = useState<any>(null)
   const [selectedOptionId, setSelectedOptionId] = useState<string>("")
   const [isSearching, setIsSearching] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -100,8 +101,17 @@ function TravelRequestForm() {
     })
   }
 
-  // Calcula o menor preço disponível
+  // Calcula o menor preço disponível e total selecionado para round-trip
   const lowestPrice = findLowestPrice(options)
+  const totalSelectedPrice = (type === "flight" && tripMode === "round-trip" && outboundOption && returnOption) 
+    ? (outboundOption.price || 0) + (returnOption.price || 0)
+    : null
+  const bestCombinedPrice = searchStatistics?.bestCombinedPrice || null
+  
+  // Determina se justificativa é necessária
+  const needsJustification = type === "flight" && tripMode === "round-trip" && totalSelectedPrice !== null && bestCombinedPrice !== null
+    ? totalSelectedPrice > bestCombinedPrice
+    : isJustificationRequired(options.find(o => o.id === selectedOptionId)?.price, lowestPrice)
 
   const handleTypeChange = (newType: string) => {
     setType(newType as any)
@@ -165,12 +175,20 @@ function TravelRequestForm() {
     setIsSearching(true)
     setVisibleCount(5)
     setSelectedOptionId("")
+    setSearchStatistics(null)
     try {
       const isRoundTrip = type === "flight" && tripMode === "round-trip"
       const results = await searchOptionsAction(type, origin, destination, departureDate, returnDate, isRoundTrip)
-      setOptions(results)
-      if (results.length > 0) {
-        let successMessage = `${results.length} opções encontradas!`
+      
+      // results agora pode ser um array (formato antigo) ou um objeto {options, statistics}
+      const resultOptions = Array.isArray(results) ? results : results.options
+      const resultStats = Array.isArray(results) ? null : results.statistics
+      
+      setOptions(resultOptions)
+      setSearchStatistics(resultStats)
+      
+      if (resultOptions.length > 0) {
+        let successMessage = `${resultOptions.length} opções encontradas!`
         let description = ""
         
         if (type === "flight") {
@@ -179,7 +197,7 @@ function TravelRequestForm() {
           description = "Escolha sua hospedagem"
         } else if (type === "car") {
           // Verifica se tem IDs mockados
-          const isMocked = results.some(r => r.id?.includes('mock'))
+          const isMocked = resultOptions.some((r: any) => r.id?.includes('mock'))
           description = isMocked 
             ? "Escolha seu veículo (opções de demonstração)"
             : "Escolha seu veículo"
@@ -269,8 +287,8 @@ function TravelRequestForm() {
       return
     }
 
-    // Valida se justificativa é obrigatória
-    if (isJustificationRequired(finalOption.price, lowestPrice) && !justification) {
+    // Valida se justificativa é obrigatória usando a nova lógica
+    if (needsJustification && !justification) {
       toast.error("Erro", { description: "Justificativa é obrigatória para opções mais caras" })
       return
     }
@@ -305,6 +323,7 @@ function TravelRequestForm() {
         reviewsCount: finalOption.reviewsCount,
         locationDetails: finalOption.locationDetails,
         hotelAmenities: finalOption.hotelAmenities,
+        statistics: searchStatistics, // Adiciona estatísticas ao selectedOption
       },
       alternatives: options
         .filter((o) => o.id !== finalOption?.id)
@@ -339,6 +358,7 @@ function TravelRequestForm() {
 
     // Reseta o formulário
     setOptions([])
+    setSearchStatistics(null)
     setSelectedOptionId("")
     setOutboundOption(null)
     setReturnOption(null)
@@ -782,7 +802,7 @@ function TravelRequestForm() {
               <p className="text-sm text-muted-foreground">Selecionou a opção fornecida por <strong>{options.find(o => o.id === selectedOptionId)?.provider}</strong>. Justifique a sua escolha para o aprovador.</p>
               
               {/* Aviso se não for a opção mais barata */}
-              {isJustificationRequired(options.find(o => o.id === selectedOptionId)?.price, lowestPrice) && (
+              {needsJustification && (
                 <div className="flex gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                   <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                   <div>
@@ -798,9 +818,7 @@ function TravelRequestForm() {
               <div className="space-y-2">
                 <Label>
                   Motivo da Solicitação
-                  {isJustificationRequired(options.find(o => o.id === selectedOptionId)?.price, lowestPrice) ? (
-                    <span className="text-red-500 ml-1">*</span>
-                  ) : null}
+                  {needsJustification && <span className="text-red-500 ml-1">*</span>}
                 </Label>
                 <Textarea 
                   value={reason} 
@@ -812,7 +830,7 @@ function TravelRequestForm() {
               </div>
 
               {/* Campo de justificativa (visível apenas se obrigatório) */}
-              {isJustificationRequired(options.find(o => o.id === selectedOptionId)?.price, lowestPrice) && (
+              {needsJustification && (
                 <div className="space-y-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <Label htmlFor="justification">
                     Justificativa para Opção Mais Cara
@@ -825,6 +843,7 @@ function TravelRequestForm() {
                     placeholder="Explique por que escolheu uma opção mais cara (ex: horário melhor, conexões diretas, comodidade, etc.)..."
                     rows={3}
                     className="resize-none"
+                    required
                   />
                   <p className="text-xs text-blue-600 mt-1">Este campo é obrigatório para opções que não são a mais barata disponível.</p>
                 </div>
@@ -833,7 +852,7 @@ function TravelRequestForm() {
               <div className="flex gap-4 pt-2">
                 <Button 
                   onClick={handleAddToCart} 
-                  disabled={isSubmitting || !reason || (isJustificationRequired(options.find(o => o.id === selectedOptionId)?.price, lowestPrice) && !justification)} 
+                  disabled={isSubmitting || !reason || (needsJustification && !justification)} 
                   className="flex-1 bg-blue-500 hover:bg-blue-600"
                 >
                   <Plus className="w-4 h-4 mr-2" />
@@ -883,13 +902,13 @@ function TravelRequestForm() {
               {outboundOption && returnOption && (
                 <>
                   {/* Aviso se combinação não for a mais barata */}
-                  {isJustificationRequired((outboundOption.price || 0) + (returnOption.price || 0), lowestPrice) && (
+                  {totalSelectedPrice !== null && bestCombinedPrice !== null && totalSelectedPrice > bestCombinedPrice && (
                     <div className="flex gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                       <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                       <div>
                         <p className="font-medium text-amber-900">Justificativa Obrigatória</p>
                         <p className="text-sm text-amber-800 mt-1">
-                          O custo total dos voos selecionados (R$ {((outboundOption.price || 0) + (returnOption.price || 0)).toLocaleString("pt-BR")}) é maior que a opção mais barata (R$ {lowestPrice?.toLocaleString("pt-BR")}). 
+                          O custo total dos voos selecionados (R$ {totalSelectedPrice.toLocaleString("pt-BR")}) é maior que a melhor combinação disponível (R$ {bestCombinedPrice.toLocaleString("pt-BR")}). 
                           Por favor, justifique por que escolheu essas opções.
                         </p>
                       </div>
@@ -899,9 +918,7 @@ function TravelRequestForm() {
                   <div className="space-y-2">
                     <Label>
                       Motivo da Solicitação
-                      {isJustificationRequired((outboundOption.price || 0) + (returnOption.price || 0), lowestPrice) ? (
-                        <span className="text-red-500 ml-1">*</span>
-                      ) : null}
+                      {needsJustification && <span className="text-red-500 ml-1">*</span>}
                     </Label>
                     <Textarea 
                       value={reason} 
@@ -913,7 +930,7 @@ function TravelRequestForm() {
                   </div>
 
                   {/* Campo de justificativa (visível apenas se obrigatório) */}
-                  {isJustificationRequired((outboundOption.price || 0) + (returnOption.price || 0), lowestPrice) && (
+                  {needsJustification && (
                     <div className="space-y-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                       <Label htmlFor="justification-round">
                         Justificativa para Opção Mais Cara
@@ -926,6 +943,7 @@ function TravelRequestForm() {
                         placeholder="Explique por que escolheu opções mais caras (ex: horários melhores, menos conexões, comodidade, etc.)..."
                         rows={3}
                         className="resize-none"
+                        required
                       />
                       <p className="text-xs text-blue-600 mt-1">Este campo é obrigatório para opções que não são as mais baratas disponíveis.</p>
                     </div>
@@ -934,7 +952,7 @@ function TravelRequestForm() {
                   <div className="flex gap-4 pt-2">
                     <Button 
                       onClick={handleAddToCart} 
-                      disabled={isSubmitting || !reason || (isJustificationRequired((outboundOption.price || 0) + (returnOption.price || 0), lowestPrice) && !justification)} 
+                      disabled={isSubmitting || !reason || (needsJustification && !justification)} 
                       className="flex-1 bg-green-600 hover:bg-green-700"
                     >
                       <Plus className="w-4 h-4 mr-2" />

@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { travelRequests, notifications, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { fetchFlightOffers, fetchHotelOffers, fetchCarOffers, searchLocations } from "@/lib/travel-api";
+import { fetchFlightOffers, fetchHotelOffers, fetchCarOffers, searchLocations, fetchFlightOffersWithStats } from "@/lib/travel-api";
 import { Resend } from "resend";
 
 // Inicializa Resend com a chave de API
@@ -232,22 +232,26 @@ export async function searchOptionsAction(type: string, origin: string, destinat
   const fmtReturnDate = returnDate ? new Date(returnDate).toISOString().split('T')[0] : undefined;
   
   if (type === 'flight' && isRoundTrip) {
-    // Para round-trip, busca ida E volta em paralelo
-    const [outboundFlights, returnFlights] = await Promise.all([
-      fetchFlightOffers(origin, destination, fmtDate, fmtReturnDate, "outbound"),
-      fetchFlightOffers(destination, origin, fmtReturnDate!, fmtDate, "return")
-    ]);
-    
-    // Combina e ordena
-    return [...outboundFlights, ...returnFlights];
+    // Para round-trip, busca usando a estratégia split que retorna estatísticas
+    const result = await fetchFlightOffersWithStats(origin, destination, fmtDate, fmtReturnDate!);
+    return result;
   }
   
   // Para one-way, não passa returnDate
-  if (type === 'flight') return await fetchFlightOffers(origin, destination, fmtDate, isRoundTrip ? fmtReturnDate : undefined);
-  if (type === 'hotel') return await fetchHotelOffers(destination, fmtDate, fmtReturnDate || fmtDate);
-  if (type === 'car') return await fetchCarOffers(destination, fmtDate, fmtReturnDate || fmtDate);
+  if (type === 'flight') {
+    const options = await fetchFlightOffers(origin, destination, fmtDate, isRoundTrip ? fmtReturnDate : undefined);
+    return { options, statistics: null };
+  }
+  if (type === 'hotel') {
+    const options = await fetchHotelOffers(destination, fmtDate, fmtReturnDate || fmtDate);
+    return { options, statistics: null };
+  }
+  if (type === 'car') {
+    const options = await fetchCarOffers(destination, fmtDate, fmtReturnDate || fmtDate);
+    return { options, statistics: null };
+  }
   
-  return [];
+  return { options: [], statistics: null };
 }
 
 export async function createTravelRequestAction(data: {

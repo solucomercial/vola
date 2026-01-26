@@ -654,20 +654,24 @@ export async function searchRoundTripSplit(
     }
     console.log('');
 
-    // Calcula estatísticas
+    // Calcula estatísticas (apenas com voos que têm price > 0)
     let statistics = undefined;
 
-    if (outboundResults.length > 0 && returnResults.length > 0) {
-      const outboundPrices = outboundResults.map(f => f.price);
-      const returnPrices = returnResults.map(f => f.price);
+    // Filtra apenas voos com price > 0 para calcular estatísticas
+    const validOutboundResults = outboundResults.filter(f => f.price > 0);
+    const validReturnResults = returnResults.filter(f => f.price > 0);
+
+    if (validOutboundResults.length > 0 && validReturnResults.length > 0) {
+      const outboundPrices = validOutboundResults.map(f => f.price);
+      const returnPrices = validReturnResults.map(f => f.price);
 
       const bestOutboundPrice = Math.min(...outboundPrices);
       const bestReturnPrice = Math.min(...returnPrices);
       const bestCombinedPrice = bestOutboundPrice + bestReturnPrice;
 
       statistics = {
-        totalOutbound: outboundResults.length,
-        totalReturn: returnResults.length,
+        totalOutbound: validOutboundResults.length,
+        totalReturn: validReturnResults.length,
         bestOutboundPrice,
         bestReturnPrice,
         bestCombinedPrice
@@ -732,73 +736,100 @@ export async function searchRoundTripSplit(
   }
 }
 
+/**
+ * Busca voos round-trip com estatísticas de preço
+ * Retorna voos e estatísticas incluindo bestCombinedPrice
+ */
+export async function fetchFlightOffersWithStats(
+  origin: string, 
+  destination: string, 
+  date: string, 
+  returnDate: string
+): Promise<{ options: TravelOption[], statistics: any }> {
+  try {
+    console.log('\n[fetchFlightOffersWithStats] Buscando voos round-trip com estatísticas');
+    const splitResult = await searchRoundTripSplit({
+      origin,
+      destination,
+      outboundDate: date,
+      returnDate,
+      currency: 'BRL',
+      adults: 1,
+      children: 0,
+      travelClass: '1',
+      maxResults: 20
+    });
+
+    console.log(`\n[fetchFlightOffersWithStats] Resultados da busca split:
+      IDA: ${splitResult.outboundResults.length} voos
+      VOLTA: ${splitResult.returnResults.length} voos
+      Best Combined Price: ${splitResult.statistics?.bestCombinedPrice || 'N/A'}
+    `);
+
+    // Mapeia voos de IDA
+    const outboundFlights = splitResult.outboundResults.map((f: any, index: number) => ({
+      id: `flight-outbound-${index}`,
+      provider: f.flights?.[0]?.airline || "Companhia Aérea",
+      price: f.price || 0,
+      details: `${f.flights?.[0]?.travelClass || 'Economy'} - Duração: ${f.totalDuration} min`,
+      bookingUrl: f.searchUrl,
+      departureTime: f.flights?.[0]?.departureTime,
+      arrivalTime: f.flights?.[0]?.arrivalTime,
+      flightNumber: f.flights?.[0]?.flightNumber,
+      airplane: f.flights?.[0]?.airplane,
+      legroom: f.flights?.[0]?.legroom,
+      amenities: f.flights?.[0]?.extensions || [],
+      airlineLogo: f.flights?.[0]?.airlineLogo,
+      departureAirport: f.flights?.[0]?.departureAirport,
+      arrivalAirport: f.flights?.[0]?.arrivalAirport,
+      legType: "outbound" as const,
+      rawData: f,
+    }));
+
+    // Mapeia voos de VOLTA
+    const returnFlights = splitResult.returnResults.map((f: any, index: number) => ({
+      id: `flight-return-${index}`,
+      provider: f.flights?.[0]?.airline || "Companhia Aérea",
+      price: f.price || 0,
+      details: `${f.flights?.[0]?.travelClass || 'Economy'} - Duração: ${f.totalDuration} min`,
+      bookingUrl: f.searchUrl,
+      departureTime: f.flights?.[0]?.departureTime,
+      arrivalTime: f.flights?.[0]?.arrivalTime,
+      flightNumber: f.flights?.[0]?.flightNumber,
+      airplane: f.flights?.[0]?.airplane,
+      legroom: f.flights?.[0]?.legroom,
+      amenities: f.flights?.[0]?.extensions || [],
+      airlineLogo: f.flights?.[0]?.airlineLogo,
+      departureAirport: f.flights?.[0]?.departureAirport,
+      arrivalAirport: f.flights?.[0]?.arrivalAirport,
+      legType: "return" as const,
+      rawData: f,
+    }));
+
+    // Filtra voos com price > 0
+    const validOutboundFlights = outboundFlights.filter(f => f.price > 0);
+    const validReturnFlights = returnFlights.filter(f => f.price > 0);
+    const allFlights = [...validOutboundFlights, ...validReturnFlights];
+    
+    console.log(`[fetchFlightOffersWithStats] Retornando ${allFlights.length} voos com estatísticas (filtrados ${outboundFlights.length + returnFlights.length - allFlights.length} com price zero)`);
+    
+    return {
+      options: allFlights,
+      statistics: splitResult.statistics
+    };
+  } catch (error) {
+    console.error("[ERRO] fetchFlightOffersWithStats:", error);
+    return { options: [], statistics: null };
+  }
+}
+
 export async function fetchFlightOffers(origin: string, destination: string, date: string, returnDate?: string, legType?: "outbound" | "return"): Promise<TravelOption[]> {
   try {
     // Se é uma busca round-trip (tem returnDate), usa a estratégia split
     if (returnDate) {
       console.log('\n[fetchFlightOffers] Detectada busca round-trip - usando stratégia SPLIT');
-      const splitResult = await searchRoundTripSplit({
-        origin,
-        destination,
-        outboundDate: date,
-        returnDate,
-        currency: 'BRL',
-        adults: 1,
-        children: 0,
-        travelClass: '1',
-        maxResults: 20
-      });
-
-      console.log(`\n[fetchFlightOffers] Resultados da busca split:
-        IDA: ${splitResult.outboundResults.length} voos
-        VOLTA: ${splitResult.returnResults.length} voos
-      `);
-
-      // Mapeia voos de IDA
-      const outboundFlights = splitResult.outboundResults.map((f: any, index: number) => ({
-        id: `flight-outbound-${index}`,
-        provider: f.flights?.[0]?.airline || "Companhia Aérea",
-        price: f.price || 0,
-        details: `${f.flights?.[0]?.travelClass || 'Economy'} - Duração: ${f.totalDuration} min`,
-        bookingUrl: f.searchUrl,
-        departureTime: f.flights?.[0]?.departureTime,
-        arrivalTime: f.flights?.[0]?.arrivalTime,
-        flightNumber: f.flights?.[0]?.flightNumber,
-        airplane: f.flights?.[0]?.airplane,
-        legroom: f.flights?.[0]?.legroom,
-        amenities: f.flights?.[0]?.extensions || [],
-        airlineLogo: f.flights?.[0]?.airlineLogo,
-        departureAirport: f.flights?.[0]?.departureAirport,
-        arrivalAirport: f.flights?.[0]?.arrivalAirport,
-        legType: "outbound" as const,
-        rawData: f, // Guardar dados originais para referência
-      }));
-
-      // Mapeia voos de VOLTA
-      const returnFlights = splitResult.returnResults.map((f: any, index: number) => ({
-        id: `flight-return-${index}`,
-        provider: f.flights?.[0]?.airline || "Companhia Aérea",
-        price: f.price || 0,
-        details: `${f.flights?.[0]?.travelClass || 'Economy'} - Duração: ${f.totalDuration} min`,
-        bookingUrl: f.searchUrl,
-        departureTime: f.flights?.[0]?.departureTime,
-        arrivalTime: f.flights?.[0]?.arrivalTime,
-        flightNumber: f.flights?.[0]?.flightNumber,
-        airplane: f.flights?.[0]?.airplane,
-        legroom: f.flights?.[0]?.legroom,
-        amenities: f.flights?.[0]?.extensions || [],
-        airlineLogo: f.flights?.[0]?.airlineLogo,
-        departureAirport: f.flights?.[0]?.departureAirport,
-        arrivalAirport: f.flights?.[0]?.arrivalAirport,
-        legType: "return" as const,
-        rawData: f, // Guardar dados originais para referência
-      }));
-
-      const allFlights = [...outboundFlights, ...returnFlights];
-      
-      console.log(`[fetchFlightOffers] Retornando ${allFlights.length} voos mapeados (${outboundFlights.length} IDA + ${returnFlights.length} VOLTA)`);
-      
-      return allFlights;
+      const result = await fetchFlightOffersWithStats(origin, destination, date, returnDate);
+      return result.options;
     }
 
     // Se é busca one-way, usa a função original
@@ -813,23 +844,26 @@ export async function fetchFlightOffers(origin: string, destination: string, dat
 
     const flights = [...(data.best_flights || []), ...(data.other_flights || [])];
 
-    return flights.slice(0, 20).map((f: any, index: number) => ({
-      id: `flight-${legType || 'single'}-${index}`,
-      provider: f.flights[0]?.airline || "Companhia Aérea",
-      price: f.price || 0,
-      details: `${f.flights[0]?.travel_class || 'Economy'} - Duração: ${f.total_duration} min`,
-      bookingUrl: data.search_metadata?.google_flights_url,
-      departureTime: f.flights[0]?.departure_airport?.time?.split(' ')[1],
-      arrivalTime: f.flights[0]?.arrival_airport?.time?.split(' ')[1],
-      flightNumber: f.flights[0]?.flight_number,
-      airplane: f.flights[0]?.airplane,
-      legroom: f.flights[0]?.legroom,
-      amenities: f.flights[0]?.extensions || [],
-      airlineLogo: f.flights[0]?.airline_logo,
-      departureAirport: f.flights[0]?.departure_airport?.name,
-      arrivalAirport: f.flights[0]?.arrival_airport?.name,
-      legType: legType || undefined,
-    }));
+    return flights
+      .slice(0, 20)
+      .map((f: any, index: number) => ({
+        id: `flight-${legType || 'single'}-${index}`,
+        provider: f.flights[0]?.airline || "Companhia Aérea",
+        price: f.price || 0,
+        details: `${f.flights[0]?.travel_class || 'Economy'} - Duração: ${f.total_duration} min`,
+        bookingUrl: data.search_metadata?.google_flights_url,
+        departureTime: f.flights[0]?.departure_airport?.time?.split(' ')[1],
+        arrivalTime: f.flights[0]?.arrival_airport?.time?.split(' ')[1],
+        flightNumber: f.flights[0]?.flight_number,
+        airplane: f.flights[0]?.airplane,
+        legroom: f.flights[0]?.legroom,
+        amenities: f.flights[0]?.extensions || [],
+        airlineLogo: f.flights[0]?.airline_logo,
+        departureAirport: f.flights[0]?.departure_airport?.name,
+        arrivalAirport: f.flights[0]?.arrival_airport?.name,
+        legType: legType || undefined,
+      }))
+      .filter((f: TravelOption) => f.price > 0);
   } catch (error) {
     console.error("[ERRO AUDITORIA] SerpApi Flights:", error);
     return [];
@@ -846,27 +880,30 @@ export async function fetchHotelOffers(destination: string, checkIn: string, che
     console.log("\n==================== AUDITORIA: RAW SERPAPI (HOTÉIS) ====================");
     console.dir(data, { depth: null, colors: true });
 
-    return (data.properties || []).slice(0, 20).map((h: any, index: number) => {
-      // Mapeamento de preço robusto para evitar o R$ 0
-      const priceValue = h.rate_per_night?.extracted_lowest || 
-                         h.rate_per_night?.lowest || 
-                         h.total_rate?.extracted_lowest || 
-                         h.total_rate?.lowest || 
-                         0;
+    return (data.properties || [])
+      .slice(0, 20)
+      .map((h: any, index: number) => {
+        // Mapeamento de preço robusto para evitar o R$ 0
+        const priceValue = h.rate_per_night?.extracted_lowest || 
+                           h.rate_per_night?.lowest || 
+                           h.total_rate?.extracted_lowest || 
+                           h.total_rate?.lowest || 
+                           0;
 
-      return {
-        id: `hotel-${index}`,
-        provider: h.name,
-        price: priceValue,
-        details: h.description || 'Hospedagem selecionada via Google Hotels',
-        bookingUrl: h.link,
-        images: h.images?.map((img: any) => img.thumbnail) || [h.thumbnail],
-        rating: h.overall_rating,
-        reviewsCount: h.reviews,
-        locationDetails: h.location_rating ? `${h.location_rating}/5 em localização` : "Localização central",
-        hotelAmenities: h.amenities || []
-      };
-    });
+        return {
+          id: `hotel-${index}`,
+          provider: h.name,
+          price: priceValue,
+          details: h.description || 'Hospedagem selecionada via Google Hotels',
+          bookingUrl: h.link,
+          images: h.images?.map((img: any) => img.thumbnail) || [h.thumbnail],
+          rating: h.overall_rating,
+          reviewsCount: h.reviews,
+          locationDetails: h.location_rating ? `${h.location_rating}/5 em localização` : "Localização central",
+          hotelAmenities: h.amenities || []
+        };
+      })
+      .filter((h: TravelOption) => h.price > 0);
   } catch (error) {
     console.error("[ERRO AUDITORIA] SerpApi Hotels:", error);
     return [];
@@ -960,13 +997,16 @@ export async function fetchCarOffers(destination: string, date: string, returnDa
       return getMockCarOffers(locationName, fmtDate, fmtReturnDate);
     }
 
-    return (data.data || []).slice(0, 20).map((c: any, index: number) => ({
-      id: `car-${index}`,
-      provider: c.vendor_info?.name || "Locadora",
-      price: c.price_info?.total_price || 0,
-      details: `${c.vehicle_info?.label || 'Veículo'} - ${c.vehicle_info?.transmission || ''}`,
-      bookingUrl: c.reservation_url
-    }));
+    return (data.data || [])
+      .slice(0, 20)
+      .map((c: any, index: number) => ({
+        id: `car-${index}`,
+        provider: c.vendor_info?.name || "Locadora",
+        price: c.price_info?.total_price || 0,
+        details: `${c.vehicle_info?.label || 'Veículo'} - ${c.vehicle_info?.transmission || ''}`,
+        bookingUrl: c.reservation_url
+      }))
+      .filter((c: TravelOption) => c.price > 0);
   } catch (error) {
     console.error("[fetchCarOffers] Erro completo:", error);
     throw error;
