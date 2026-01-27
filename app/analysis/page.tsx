@@ -27,7 +27,7 @@ import { toast } from "sonner"
 
 export default function AnalysisPage() {
   const router = useRouter()
-  const { currentUser } = useApp()
+  const { currentUser, loading } = useApp()
   const [pendingRequests, setPendingRequests] = useState<any[]>([])
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null)
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
@@ -40,13 +40,20 @@ export default function AnalysisPage() {
 
   // Verifica permissão de acesso
   useEffect(() => {
-    if (currentUser.role !== "admin" && currentUser.role !== "approver") {
-      toast.error("Acesso Negado", {
-        description: "Apenas administradores e aprovadores podem acessar esta página"
-      })
-      router.push("/dashboard")
+    if (!loading) {
+      if (!currentUser) {
+        router.push("/login")
+        return
+      }
+
+      if (currentUser.role !== "admin" && currentUser.role !== "approver") {
+        toast.error("Acesso Negado", {
+          description: "Apenas administradores e aprovadores podem acessar esta página"
+        })
+        router.push("/dashboard")
+      }
     }
-  }, [currentUser, router])
+  }, [currentUser, loading, router])
 
   // Função para carregar dados reais do banco
   const loadRequests = useCallback(async () => {
@@ -57,13 +64,13 @@ export default function AnalysisPage() {
   }, [])
 
   useEffect(() => {
-    if (currentUser.role === "admin" || currentUser.role === "approver") {
+    if (!loading && currentUser && (currentUser.role === "admin" || currentUser.role === "approver")) {
       loadRequests()
     }
-  }, [loadRequests, currentUser])
+  }, [loadRequests, currentUser, loading])
 
   const handleApprove = async () => {
-    if (!selectedRequest) return
+    if (!selectedRequest || !currentUser) return
     setIsProcessing(true)
     try {
       const res = await approveRequestAction(selectedRequest.id, currentUser.id)
@@ -78,7 +85,7 @@ export default function AnalysisPage() {
   }
 
   const handleReject = async () => {
-    if (!selectedRequest || !rejectionReason.trim()) return
+    if (!selectedRequest || !rejectionReason.trim() || !currentUser) return
     setIsProcessing(true)
     try {
       const res = await rejectRequestAction(selectedRequest.id, currentUser.id, rejectionReason)
@@ -99,7 +106,7 @@ export default function AnalysisPage() {
   }
 
   const handleComparisonApprove = async () => {
-    if (!requestForComparison) return
+    if (!requestForComparison || !currentUser) return
     setIsProcessing(true)
     try {
       const res = await approveRequestAction(requestForComparison.id, currentUser.id)
@@ -114,7 +121,7 @@ export default function AnalysisPage() {
   }
 
   const handleComparisonApproveWithOption = async (selectedOption: any) => {
-    if (!requestForComparison || !selectedOption) return
+    if (!requestForComparison || !selectedOption || !currentUser) return
     setIsProcessing(true)
     try {
       // Se a opção selecionada é diferente da original, atualiza a solicitação
