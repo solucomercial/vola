@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
+import { usePathname } from "next/navigation"
 
 // Types
 export type UserRole = "requester" | "approver" | "admin" | "buyer"
@@ -76,6 +77,8 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined)
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname()
+  const skipAuth = pathname === "/login"
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [users, setUsers] = useState<User[]>([])
   const [requests, setRequests] = useState<TravelRequest[]>([])
@@ -84,59 +87,65 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Função para carregar dados do banco
   const loadData = useCallback(async (userId?: string) => {
+    if (skipAuth) {
+      setLoading(false)
+      return
+    }
+
     try {
       setLoading(true)
       
-      // Carregar todos os usuários apenas se ainda não tiver
-      if (users.length === 0) {
-        const usersResponse = await fetch("/api/users")
-        if (usersResponse.ok) {
-          const usersData = await usersResponse.json()
-          setUsers(usersData)
-          
-          // Se não tem usuário atual, usa o primeiro usuário como padrão
-          if (!currentUser && usersData.length > 0) {
-            setCurrentUser(usersData[0])
-            userId = usersData[0].id
-          }
+      // Verificar sessão primeiro
+      const sessionResponse = await fetch("/api/auth/session")
+      if (!sessionResponse.ok) {
+        // Redirecionar para login se não estiver autenticado
+        if (typeof window !== "undefined") {
+          window.location.href = "/login"
         }
+        return
       }
 
-      const userIdToUse = userId || currentUser?.id
+      const { user } = await sessionResponse.json()
       
-      if (userIdToUse) {
-        // Carregar requests
-        const requestsResponse = await fetch(`/api/requests?userId=${userIdToUse}`)
-        if (requestsResponse.ok) {
-          const requestsData = await requestsResponse.json()
-          setRequests(requestsData)
-        }
+      // Definir o usuário da sessão como usuário atual
+      if (!currentUser || currentUser.id !== user.id) {
+        setCurrentUser(user)
+      }
 
-        // Carregar notificações
-        const notificationsResponse = await fetch(`/api/notifications?userId=${userIdToUse}`)
-        if (notificationsResponse.ok) {
-          const notificationsData = await notificationsResponse.json()
-          setNotifications(notificationsData)
-        }
+      // Carregar requests
+      const requestsResponse = await fetch(`/api/requests?userId=${user.id}`)
+      if (requestsResponse.ok) {
+        const requestsData = await requestsResponse.json()
+        setRequests(requestsData)
+      }
+
+      // Carregar notificações
+      const notificationsResponse = await fetch(`/api/notifications?userId=${user.id}`)
+      if (notificationsResponse.ok) {
+        const notificationsData = await notificationsResponse.json()
+        setNotifications(notificationsData)
+      }
+
+      // Carregar todos os usuários (para uso em listagens)
+      const usersResponse = await fetch("/api/users")
+      if (usersResponse.ok) {
+        const usersData = await usersResponse.json()
+        setUsers(usersData)
       }
     } catch (error) {
       console.error("Error loading data:", error)
+      if (typeof window !== "undefined") {
+        window.location.href = "/login"
+      }
     } finally {
       setLoading(false)
     }
-  }, [currentUser, users.length])
+  }, [currentUser, skipAuth])
 
   // Carregar dados na inicialização
   useEffect(() => {
     loadData()
   }, []) // Executar apenas uma vez
-
-  // Recarregar dados quando o usuário mudar
-  useEffect(() => {
-    if (currentUser && currentUser.id) {
-      loadData(currentUser.id)
-    }
-  }, [currentUser?.id]) // Apenas quando o ID do usuário mudar
 
   const generateApprovalCode = () => {
     const year = new Date().getFullYear()
@@ -247,9 +256,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await loadData(currentUser?.id)
   }, [loadData, currentUser?.id])
 
-  // Não renderiza o provider até ter carregado o usuário inicial
-  if (!currentUser) {
+  // Não renderiza o provider até ter carregado o usuário inicial (exceto na página de login)
+  if (!currentUser && !skipAuth) {
     return null
+  }
+
+  if (skipAuth) {
+    return children
   }
 
   return (

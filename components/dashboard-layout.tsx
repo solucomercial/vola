@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useApp, type UserRole } from "@/context/app-context"
 import { Button } from "@/components/ui/button"
@@ -31,6 +31,7 @@ import {
   LogOut,
   ShoppingCart,
 } from "lucide-react"
+import { toast } from "sonner"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["requester", "approver", "admin", "buyer"] },
@@ -45,7 +46,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const pathname = usePathname()
-  const { currentUser, setCurrentUser, users, getUnreadNotificationsCount } = useApp()
+  const router = useRouter()
+  const { currentUser, getUnreadNotificationsCount } = useApp()
 
   const filteredNavigation = navigation.filter((item) => item.roles.includes(currentUser.role))
 
@@ -56,6 +58,17 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     }
     fetchUnreadCount()
   }, [currentUser.id, getUnreadNotificationsCount])
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" })
+      toast.success("Logout realizado com sucesso")
+      router.push("/login")
+      router.refresh()
+    } catch (error) {
+      toast.error("Erro ao fazer logout")
+    }
+  }
 
   const getRoleBadgeVariant = (role: UserRole) => {
     switch (role) {
@@ -166,36 +179,18 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Mudar de função (Demo)</DropdownMenuLabel>
+                <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {users.map((user) => (
-                  <DropdownMenuItem
-                    key={user.id}
-                    onClick={() => setCurrentUser(user)}
-                    className={cn(currentUser.id === user.id && "bg-secondary")}
-                  >
-                    <div className="flex items-center gap-2 w-full">
-                      <Avatar className="h-6 w-6">
-                        <AvatarFallback className="text-xs">
-                          {user.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col flex-1">
-                        <span className="text-sm">{user.name}</span>
-                        <span className="text-xs text-muted-foreground capitalize">{user.role}</span>
-                      </div>
-                    </div>
-                  </DropdownMenuItem>
-                ))}
+                <DropdownMenuItem disabled>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">{currentUser.name}</span>
+                    <span className="text-xs text-muted-foreground">{currentUser.email}</span>
+                  </div>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/" className="flex items-center gap-2">
-                    <LogOut className="h-4 w-4" />
-                    Sair
-                  </Link>
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sair
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
