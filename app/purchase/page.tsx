@@ -1,31 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { format, parseISO } from "date-fns"
+import { ShoppingCart } from "lucide-react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { useApp } from "@/context/app-context"
+import { getApprovedRequestsAction } from "@/app/actions/travel-requests"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Textarea } from "@/components/ui/textarea"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
-import { 
-  ShoppingCart, 
-  Plane, 
-  Building2, 
-  Car, 
-  ExternalLink, 
-  Check, 
-  X, 
-  AlertCircle,
-  TrendingDown,
-  Calendar,
-  MapPin,
-  DollarSign
-} from "lucide-react"
-import { format, parseISO } from "date-fns"
-import { getApprovedRequestsAction, completePurchaseAction, rejectRequestAction } from "@/app/actions/travel-requests"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { toast } from "sonner"
 
 interface TravelRequest {
@@ -51,18 +35,12 @@ export default function PurchasePage() {
   const { currentUser } = useApp()
   const [requests, setRequests] = useState<TravelRequest[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [selectedRequest, setSelectedRequest] = useState<TravelRequest | null>(null)
-  const [showRejectDialog, setShowRejectDialog] = useState(false)
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
-  const [rejectionReason, setRejectionReason] = useState("")
-  const [confirmationCode, setConfirmationCode] = useState("")
-  const [isProcessing, setIsProcessing] = useState(false)
 
   // Verifica permissão de acesso
   useEffect(() => {
     if (currentUser.role !== "buyer" && currentUser.role !== "admin") {
       toast.error("Acesso Negado", {
-        description: "Você não tem permissão para acessar esta página"
+        description: "Você não tem permissão para acessar esta página",
       })
       router.push("/dashboard")
     }
@@ -79,78 +57,13 @@ export default function PurchasePage() {
     setIsLoading(false)
   }
 
-  const handleCompletePurchase = async () => {
-    if (!selectedRequest || !confirmationCode.trim()) {
-      toast.error("Preencha os códigos de confirmação")
-      return
-    }
-
-    // Converte os códigos separados por vírgula em array
-    const codes = confirmationCode.split(',').map(code => code.trim()).filter(code => code.length > 0)
-
-    if (codes.length === 0) {
-      toast.error("Informe pelo menos um código de confirmação válido")
-      return
-    }
-
-    setIsProcessing(true)
-    const result = await completePurchaseAction(selectedRequest.id, currentUser.id, codes)
-    
-    if (result.success) {
-      toast.success("Compra Confirmada!", {
-        description: `Solicitação marcada como comprada com ${codes.length} localizador${codes.length > 1 ? 'es' : ''}`
-      })
-      setShowConfirmDialog(false)
-      setConfirmationCode("")
-      setSelectedRequest(null)
-      loadRequests()
-    } else {
-      toast.error("Erro ao confirmar compra", {
-        description: "Tente novamente"
-      })
-    }
-    setIsProcessing(false)
-  }
-
-  const handleReject = async () => {
-    if (!selectedRequest || !rejectionReason.trim()) {
-      toast.error("Preencha o motivo da rejeição")
-      return
-    }
-
-    setIsProcessing(true)
-    const result = await rejectRequestAction(selectedRequest.id, currentUser.id, rejectionReason)
-    
-    if (result.success) {
-      toast.success("Solicitação Rejeitada", {
-        description: "O solicitante será notificado"
-      })
-      setShowRejectDialog(false)
-      setSelectedRequest(null)
-      setRejectionReason("")
-      loadRequests()
-    } else {
-      toast.error("Erro ao rejeitar solicitação")
-    }
-    setIsProcessing(false)
-  }
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "flight": return <Plane className="h-5 w-5" />
-      case "hotel": return <Building2 className="h-5 w-5" />
-      case "car": return <Car className="h-5 w-5" />
-      default: return null
-    }
-  }
-
   const formatDate = (date: string | Date) => {
-    const dateObj = typeof date === 'string' ? parseISO(date) : date
+    const dateObj = typeof date === "string" ? parseISO(date) : date
     return format(dateObj, "dd/MM/yyyy")
   }
 
   const calculateSavings = (selectedPrice: number, alternatives: any[]) => {
-    const prices = alternatives.map(alt => alt.price).filter(p => p > 0)
+    const prices = alternatives.map((alt) => alt.price).filter((p) => p > 0)
     if (prices.length === 0) return 0
     const cheapest = Math.min(...prices)
     return selectedPrice > cheapest ? selectedPrice - cheapest : 0
@@ -188,7 +101,7 @@ export default function PurchasePage() {
           </Badge>
         </div>
 
-        {/* Lista de Solicitações */}
+        {/* Lista de Solicitações em Tabela */}
         {requests.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
@@ -200,255 +113,64 @@ export default function PurchasePage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
-            {requests.map((request) => {
-              const savings = calculateSavings(
-                request.selectedOption?.price || 0,
-                request.alternatives || []
-              )
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Solicitações aprovadas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[160px]">ID</TableHead>
+                      <TableHead>Nome do solicitante</TableHead>
+                      <TableHead>Data da solicitação</TableHead>
+                      <TableHead>Destino</TableHead>
+                      <TableHead>Economia disponível</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {requests.map((request) => {
+                      const savings = calculateSavings(
+                        request.selectedOption?.price || 0,
+                        request.alternatives || []
+                      )
 
-              return (
-                <Card key={request.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-primary/10">
-                          {getTypeIcon(request.type)}
-                        </div>
-                        <div>
-                          <CardTitle className="text-xl">
-                            {request.type === "flight" && request.origin 
-                              ? `${request.origin} → ${request.destination}`
-                              : request.destination
-                            }
-                          </CardTitle>
-                          <p className="text-sm text-muted-foreground">
-                            Solicitado por {request.userName}
-                          </p>
-                        </div>
-                      </div>
-                      <Badge className="bg-green-100 text-green-700 border-green-200">
-                        Aprovada
-                      </Badge>
-                    </div>
-                  </CardHeader>
-
-                  <CardContent className="space-y-4">
-                    {/* Informações da Viagem */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-secondary/30 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-xs text-muted-foreground">Datas</p>
-                          <p className="font-medium text-sm">
-                            {formatDate(request.departureDate)} - {formatDate(request.returnDate)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-xs text-muted-foreground">Destino</p>
-                          <p className="font-medium text-sm">{request.destination}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-xs text-muted-foreground">Valor</p>
-                          <p className="font-bold text-sm text-primary">
-                            R$ {request.selectedOption?.price?.toLocaleString("pt-BR") || "0"}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Motivo */}
-                    <div className="p-3 bg-blue-50 border-l-4 border-blue-500 rounded">
-                      <p className="text-xs font-semibold text-blue-900 mb-1">MOTIVO DA SOLICITAÇÃO</p>
-                      <p className="text-sm text-blue-800">{request.reason}</p>
-                    </div>
-
-                    {/* Justificativa (se existir) */}
-                    {request.justification && (
-                      <div className="p-3 bg-amber-50 border-l-4 border-amber-500 rounded">
-                        <p className="text-xs font-semibold text-amber-900 mb-1">JUSTIFICATIVA PARA OPÇÃO MAIS CARA</p>
-                        <p className="text-sm text-amber-800">{request.justification}</p>
-                      </div>
-                    )}
-
-                    {/* Alerta de economia */}
-                    {savings > 0 && (
-                      <div className="flex items-center gap-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                        <AlertCircle className="h-5 w-5 text-orange-600" />
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-orange-900">
-                            Atenção: Economia disponível
-                          </p>
-                          <p className="text-xs text-orange-700">
-                            Há alternativas até R$ {savings.toLocaleString("pt-BR")} mais baratas
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Opção Selecionada */}
-                    <div className="border rounded-lg p-4 bg-card">
-                      <h4 className="text-sm font-bold text-muted-foreground mb-2">OPÇÃO SELECIONADA</h4>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-bold text-lg">{request.selectedOption?.provider}</p>
-                          <p className="text-sm text-muted-foreground">{request.selectedOption?.details}</p>
-                        </div>
-                        <p className="text-2xl font-black text-primary">
-                          R$ {request.selectedOption?.price?.toLocaleString("pt-BR") || "0"}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Alternativas */}
-                    {request.alternatives && request.alternatives.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-bold text-muted-foreground mb-2">
-                          ALTERNATIVAS DISPONÍVEIS ({request.alternatives.length})
-                        </h4>
-                        <div className="space-y-2 max-h-48 overflow-y-auto">
-                          {request.alternatives.slice(0, 5).map((alt, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-3 bg-secondary/50 rounded border">
-                              <div className="flex-1">
-                                <p className="font-semibold text-sm">{alt.provider}</p>
-                                <p className="text-xs text-muted-foreground truncate">{alt.details}</p>
-                              </div>
-                              <p className="font-bold text-sm ml-4">
-                                R$ {alt.price?.toLocaleString("pt-BR") || "0"}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Ações */}
-                    <div className="flex gap-3 pt-4 border-t">
-                      {request.bookingUrl && (
-                        <Button
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => window.open(request.bookingUrl!, "_blank")}
+                      return (
+                        <TableRow
+                          key={request.id}
+                          className="cursor-pointer hover:bg-muted/70"
+                          onClick={() => router.push(`/purchase/${request.id}`)}
                         >
-                          <ExternalLink className="h-4 w-4 mr-2" />
-                          Acessar Reserva
-                        </Button>
-                      )}
-                      <Button
-                        className="flex-1 bg-green-600 hover:bg-green-700"
-                        onClick={() => {
-                          setSelectedRequest(request)
-                          setShowConfirmDialog(true)
-                        }}
-                        disabled={isProcessing}
-                      >
-                        <Check className="h-4 w-4 mr-2" />
-                        Confirmar Compra
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        onClick={() => {
-                          setSelectedRequest(request)
-                          setShowRejectDialog(true)
-                        }}
-                        disabled={isProcessing}
-                      >
-                        <X className="h-4 w-4 mr-2" />
-                        Rejeitar
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
+                          <TableCell className="font-mono text-xs text-muted-foreground">{request.id}</TableCell>
+                          <TableCell className="font-medium">{request.userName}</TableCell>
+                          <TableCell>{formatDate(request.createdAt)}</TableCell>
+                          <TableCell>{request.destination}</TableCell>
+                          <TableCell>
+                            {savings > 0 ? (
+                              <span className="text-green-700 font-semibold">
+                                R$ {savings.toLocaleString("pt-BR")}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className="capitalize">
+                              {request.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
-
-      {/* Dialog de Confirmação de Compra */}
-      <Dialog open={showConfirmDialog} onOpenChange={(open) => {
-        setShowConfirmDialog(open)
-        if (!open) {
-          setConfirmationCode("")
-          setSelectedRequest(null)
-        }
-      }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar Compra</DialogTitle>
-            <DialogDescription>
-              Digite os códigos de confirmação (localizadores) da compra. Estes códigos serão usados pelo viajante para fazer check-in. Você pode informar múltiplos códigos separados por vírgula.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label htmlFor="confirmCode" className="text-sm font-medium">
-                Códigos de Confirmação (Localizadores) *
-              </label>
-              <Input
-                id="confirmCode"
-                type="text"
-                placeholder="Ex: ABC123, XYZ789"
-                value={confirmationCode}
-                onChange={(e) => setConfirmationCode(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                💡 Separe múltiplos códigos com vírgula. Estes serão os localizadores para check-in.
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
-              Cancelar
-            </Button>
-            <Button
-              className="bg-green-600 hover:bg-green-700"
-              onClick={handleCompletePurchase}
-              disabled={!confirmationCode.trim() || isProcessing}
-            >
-              Confirmar Compra
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog de Rejeição */}
-      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Rejeitar Solicitação</DialogTitle>
-            <DialogDescription>
-              Informe o motivo técnico da rejeição. O solicitante será notificado.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <Textarea
-              placeholder="Ex: Link de reserva inválido, opção não disponível, erro no sistema do fornecedor..."
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-              rows={4}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleReject}
-              disabled={!rejectionReason.trim() || isProcessing}
-            >
-              Confirmar Rejeição
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </DashboardLayout>
   )
 }
