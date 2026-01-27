@@ -9,9 +9,11 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
+import { useApp } from "@/context/app-context"
 
 export default function LoginPage() {
   const router = useRouter()
+  const { setCurrentUser } = useApp()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -35,6 +37,9 @@ export default function LoginPage() {
       const data = await response.json()
 
       if (response.ok) {
+        // Atualiza o estado do usuário antes de redirecionar
+        setCurrentUser(data.user)
+        
         toast.success("Login realizado com sucesso!")
         router.push("/dashboard")
         router.refresh()

@@ -58,7 +58,7 @@ export interface Notification {
 }
 
 interface AppContextType {
-  currentUser: User
+  currentUser: User | null
   setCurrentUser: (user: User) => void
   users: User[]
   requests: TravelRequest[]
@@ -256,13 +256,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await loadData(currentUser?.id)
   }, [loadData, currentUser?.id])
 
-  // Não renderiza o provider até ter carregado o usuário inicial (exceto na página de login)
-  if (!currentUser && !skipAuth) {
-    return null
+  // Se está na página de login, renderiza apenas o provider com contexto mínimo
+  if (skipAuth) {
+    return (
+      <AppContext.Provider
+        value={{
+          currentUser,
+          setCurrentUser,
+          users,
+          requests,
+          notifications,
+          addRequest,
+          approveRequest,
+          rejectRequest,
+          markNotificationRead,
+          getMyRequests,
+          getPendingRequests,
+          getUnreadNotificationsCount,
+          refreshData,
+          loading: false,
+        }}
+      >
+        {children}
+      </AppContext.Provider>
+    )
   }
 
-  if (skipAuth) {
-    return children
+  // Exibe spinner enquanto carrega o usuário inicial
+  if (loading && !currentUser) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    )
   }
 
   // Garantia de tipo para o TypeScript após os guards acima
