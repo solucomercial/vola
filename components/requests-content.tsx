@@ -27,7 +27,7 @@ interface TravelRequest {
   departureDate: string | Date
   returnDate: string | Date
   reason: string
-  status: "pending" | "approved" | "rejected"
+  status: "pending" | "approved" | "rejected" | "purchased"
   selectedOption: {
     id: string
     provider: string
@@ -75,6 +75,7 @@ interface TravelRequest {
   bookingUrl: string | null
   createdAt: string | Date
   approvalCode: string | null
+  purchaseConfirmationCodes?: string[] | null
   rejectionReason: string | null
   approverId: string | null
 }
@@ -248,6 +249,7 @@ export function RequestsContent() {
                   <SelectItem value="all">Todas</SelectItem>
                   <SelectItem value="pending">Pendente</SelectItem>
                   <SelectItem value="approved">Aprovada</SelectItem>
+                  <SelectItem value="purchased">Comprada</SelectItem>
                   <SelectItem value="rejected">Rejeitada</SelectItem>
                 </SelectContent>
               </Select>
@@ -290,6 +292,7 @@ export function RequestsContent() {
             {filteredRequests.map((request) => {
               const statusColorMap = {
                 approved: { border: "border-l-emerald-500", bg: "from-emerald-50 to-emerald-100", text: "text-emerald-600", iconBg: "bg-emerald-100" },
+                purchased: { border: "border-l-teal-500", bg: "from-teal-50 to-teal-100", text: "text-teal-600", iconBg: "bg-teal-100" },
                 pending: { border: "border-l-amber-500", bg: "from-amber-50 to-amber-100", text: "text-amber-600", iconBg: "bg-amber-100" },
                 rejected: { border: "border-l-red-500", bg: "from-red-50 to-red-100", text: "text-red-600", iconBg: "bg-red-100" },
               }
@@ -331,11 +334,19 @@ export function RequestsContent() {
                           </p>
                           <p className="text-xs text-muted-foreground font-medium mt-1">{request.selectedOption?.provider || "N/A"}</p>
                         </div>
-                        {request.approvalCode && (
+                        {request.purchaseConfirmationCodes?.length ? (
                           <div className={`rounded-lg px-3 py-2 backdrop-blur-sm ${colors.bg.split(" ")[0]} bg-gradient-to-r ${colors.bg}`}>
+                            <p className={`text-[10px] uppercase tracking-wide font-semibold ${colors.text}`}>Check-in</p>
+                            <p className={`font-mono text-xs font-bold ${colors.text}`}>
+                              {request.purchaseConfirmationCodes.join(", ")}
+                            </p>
+                          </div>
+                        ) : request.approvalCode ? (
+                          <div className={`rounded-lg px-3 py-2 backdrop-blur-sm ${colors.bg.split(" ")[0]} bg-gradient-to-r ${colors.bg}`}>
+                            <p className={`text-[10px] uppercase tracking-wide font-semibold ${colors.text}`}>Aprovação</p>
                             <p className={`font-mono text-xs font-bold ${colors.text}`}>{request.approvalCode}</p>
                           </div>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   </CardContent>
@@ -597,8 +608,38 @@ export function RequestsContent() {
                       </div>
                     )}
 
-                    {/* Approval/Rejection Info */}
-                    {selectedRequest.status === "approved" && selectedRequest.approvalCode && (
+                    {/* Purchase / Approval Info */}
+                    {selectedRequest.status === "purchased" && selectedRequest.purchaseConfirmationCodes?.length ? (
+                      <div className="rounded-lg bg-gradient-to-r from-teal-50 to-teal-100 border border-teal-200 p-5">
+                        <div className="flex items-center gap-3">
+                          <CheckCircle className="h-6 w-6 text-teal-600 flex-shrink-0" />
+                          <div className="flex-1">
+                            <p className="font-bold text-teal-900">Compra confirmada</p>
+                            <p className="text-sm text-teal-700 mt-1">Códigos de check-in informados pelo comprador</p>
+                          </div>
+                        </div>
+                        <div className="mt-4 bg-white rounded-lg p-3 space-y-2">
+                          {selectedRequest.purchaseConfirmationCodes.map((code, idx) => (
+                            <div key={idx} className="flex items-center justify-between gap-3">
+                              <p className="font-mono text-lg font-bold text-teal-700">{code}</p>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-teal-600 hover:text-teal-700 hover:bg-teal-100"
+                                onClick={() => handleCopyCode(code)}
+                              >
+                                {copied ? (
+                                  <Check className="h-4 w-4" />
+                                ) : (
+                                  <Copy className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="mt-3 text-xs text-teal-700">Use estes códigos para check-in e acompanhamento da viagem.</p>
+                      </div>
+                    ) : selectedRequest.status === "approved" && selectedRequest.approvalCode ? (
                       <div className="rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100 border border-emerald-200 p-5">
                         <div className="flex items-center gap-3">
                           <CheckCircle className="h-6 w-6 text-emerald-600 flex-shrink-0" />
@@ -624,7 +665,7 @@ export function RequestsContent() {
                         </div>
                         <p className="mt-3 text-xs text-emerald-600">Use este código ao subir o boleto para pagamento</p>
                       </div>
-                    )}
+                    ) : null}
 
                     {selectedRequest.status === "rejected" && selectedRequest.rejectionReason && (
                       <div className="rounded-lg bg-gradient-to-r from-red-50 to-red-100 border border-red-200 p-5">

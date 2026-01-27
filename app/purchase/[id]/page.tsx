@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { format, parseISO } from "date-fns"
-import { AlertCircle, Check, ShoppingCart, X } from "lucide-react"
+import { AlertCircle, Check, Clock, MapPin, Plane, ShoppingCart, X } from "lucide-react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { useApp } from "@/context/app-context"
 import {
@@ -264,6 +264,61 @@ export default function PurchaseDetailPage() {
                 </Button>
               </div>
             )}
+
+            {/* Opção selecionada */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase font-semibold text-muted-foreground">Opção selecionada</p>
+                  <p className="text-lg font-bold text-foreground">{request.selectedOption?.provider || ""}</p>
+                  {request.selectedOption?.details && (
+                    <p className="text-sm text-muted-foreground">{request.selectedOption.details}</p>
+                  )}
+                </div>
+                <p className="text-2xl font-bold text-primary">
+                  R$ {request.selectedOption?.price?.toLocaleString("pt-BR") || "0"}
+                </p>
+              </div>
+
+              {request.type === "flight" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  {request.selectedOption?.flightNumber && (
+                    <div className="flex items-center gap-2">
+                      <Plane className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-semibold">Voo {request.selectedOption.flightNumber}</span>
+                    </div>
+                  )}
+                  {request.selectedOption?.airplane && (
+                    <div className="flex items-center gap-2">
+                      <Plane className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">{request.selectedOption.airplane}</span>
+                    </div>
+                  )}
+                  {request.selectedOption?.departureTime && request.selectedOption?.arrivalTime && (
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span>
+                        {request.selectedOption.departureTime} → {request.selectedOption.arrivalTime}
+                        {request.selectedOption.duration ? ` (${request.selectedOption.duration})` : ""}
+                      </span>
+                    </div>
+                  )}
+                  {request.selectedOption?.departureAirport && request.selectedOption?.arrivalAirport && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <span>{request.selectedOption.departureAirport} → {request.selectedOption.arrivalAirport}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {request.type === "hotel" && (
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  {request.selectedOption?.locationDetails && <p>{request.selectedOption.locationDetails}</p>}
+                  {request.selectedOption?.rating && <p>⭐ {request.selectedOption.rating}</p>}
+                </div>
+              )}
+            </div>
 
             {savings > 0 && (
               <div className="flex items-center gap-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">

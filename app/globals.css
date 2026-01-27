@@ -48,7 +48,7 @@
 
 :root {
   /* Corporate blue/gray/white palette for Soluções Serviços Terceirizados */
-  --background: oklch(0.985 0.002 250);
+  --background: oklch(100% 0.00011 271.152);
   --foreground: oklch(0.205 0.015 250);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.205 0.015 250);

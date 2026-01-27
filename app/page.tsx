@@ -1,3 +1,4 @@
+import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -5,13 +6,13 @@ import { Plane, Building2, Car, CheckCircle2, BarChart3, Shield } from "lucide-r
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="border-b border-border bg-card">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <Plane className="h-5 w-5 text-primary-foreground" />
+            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-white shadow-sm">
+              <Image src="/solu-web.jpeg" alt="Soluções Serviços Terceirizados" width={40} height={40} priority />
             </div>
             <div className="flex flex-col">
               <span className="text-sm font-semibold text-foreground">Soluções Serviços Terceirizados</span>
@@ -25,10 +26,11 @@ export default function HomePage() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-primary/5 to-background py-20 lg:py-32">
+      <section className="relative overflow-hidden bg-gradient-to-b from-primary/5 to-white py-10 lg:py-16">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl text-center">
-            <h1 className="text-balance text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+            <img src="/logo-solu-web.jpeg" alt="Soluções Serviços Terceirizados" className="mx-auto h-40 w-auto pb-4" />
+            <h1 className="text-balance text-2xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
               Plataforma de Gestão de Viagens Corporativas
             </h1>
             <p className="mt-6 text-pretty text-lg text-muted-foreground">
@@ -137,8 +139,8 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <Plane className="h-4 w-4 text-primary-foreground" />
+              <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-white shadow-sm">
+                <Image src="/logo-solu-web.jpeg" alt="Soluções Serviços Terceirizados" width={40} height={40} />
               </div>
               <span className="text-sm font-semibold text-foreground">Soluções Serviços Terceirizados</span>
             </div>
