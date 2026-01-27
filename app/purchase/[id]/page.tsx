@@ -47,7 +47,7 @@ interface TravelRequest {
 export default function PurchaseDetailPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
-  const { currentUser } = useApp()
+  const { currentUser, loading } = useApp()
 
   const [requests, setRequests] = useState<TravelRequest[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -64,17 +64,26 @@ export default function PurchaseDetailPage() {
 
   // Verifica permissão de acesso
   useEffect(() => {
-    if (currentUser.role !== "buyer" && currentUser.role !== "admin") {
-      toast.error("Acesso Negado", {
-        description: "Você não tem permissão para acessar esta página",
-      })
-      router.push("/dashboard")
+    if (!loading) {
+      if (!currentUser) {
+        router.push("/login")
+        return
+      }
+
+      if (currentUser.role !== "buyer" && currentUser.role !== "admin") {
+        toast.error("Acesso Negado", {
+          description: "Você não tem permissão para acessar esta página",
+        })
+        router.push("/dashboard")
+      }
     }
-  }, [currentUser, router])
+  }, [currentUser, loading, router])
 
   useEffect(() => {
-    loadRequests()
-  }, [])
+    if (!loading && currentUser && (currentUser.role === "buyer" || currentUser.role === "admin")) {
+      loadRequests()
+    }
+  }, [loading, currentUser])
 
   const loadRequests = async () => {
     setIsLoading(true)
@@ -116,7 +125,7 @@ export default function PurchaseDetailPage() {
   }
 
   const handleCompletePurchase = async () => {
-    if (!request || !confirmationCode.trim()) {
+    if (!request || !confirmationCode.trim() || !currentUser) {
       toast.error("Preencha os códigos de confirmação")
       return
     }
@@ -150,7 +159,7 @@ export default function PurchaseDetailPage() {
   }
 
   const handleReject = async () => {
-    if (!request || !rejectionReason.trim()) {
+    if (!request || !rejectionReason.trim() || !currentUser) {
       toast.error("Preencha o motivo da rejeição")
       return
     }
