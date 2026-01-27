@@ -265,6 +265,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return children
   }
 
+  // Garantia de tipo para o TypeScript após os guards acima
+  if (!currentUser) {
+    return null
+  }
+
   return (
     <AppContext.Provider
       value={{
