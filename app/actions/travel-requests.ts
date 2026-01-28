@@ -558,27 +558,65 @@ export async function submitCartAction(cartItems: CartItem[], userId: string, us
             }
           }
         } else {
-          // Fallback para formato antigo: validação simples de preço único
-          const allPrices = cartItems.map((ci) => ci.selectedOption?.price || 0);
-          const lowestPrice = Math.min(...allPrices);
+          // Fallback para formato antigo ou quando não há outbound/return separados
+          // Verifica primeiro se tem bestCombinedPrice nas statistics
+          const bestCombinedPrice = item.selectedOption?.statistics?.bestCombinedPrice;
           
-          if (itemPrice > lowestPrice && !item.justification) {
-            return {
-              success: false,
-              error: `Justificativa obrigatória para o item "${item.destination}" pois não é a opção mais barata.`,
-            };
+          if (bestCombinedPrice !== undefined && bestCombinedPrice > 0) {
+            // Para round-trip, compara o preço total com o bestCombinedPrice
+            if (itemPrice > bestCombinedPrice && !item.justification) {
+              return {
+                success: false,
+                error: `Justificativa obrigatória para o voo "${item.origin} → ${item.destination}" (R$ ${itemPrice.toFixed(2)}), pois não é a melhor combinação disponível (menor: R$ ${bestCombinedPrice.toFixed(2)}).`,
+              };
+            }
+          } else {
+            // Se não tem bestCombinedPrice, procura nos alternatives preços que façam sentido
+            // Para round-trip, os alternatives podem conter voos individuais
+            const allAlternativePrices = item.alternatives
+              ?.map((alt: any) => alt.price || 0)
+              .filter((p: number) => p > 0) || [];
+            
+            // Se temos alternatives, precisamos verificar se são voos individuais ou combinações
+            // Para ida e volta, o menor preço deve ser uma soma de ida + volta, não um voo individual
+            if (allAlternativePrices.length > 0) {
+              // Tenta detectar se são voos combinados (preços maiores) ou individuais
+              const avgPrice = allAlternativePrices.reduce((a, b) => a + b, 0) / allAlternativePrices.length;
+              
+              // Se o preço médio é muito menor que o preço selecionado (menos da metade),
+              // provavelmente são voos individuais, não combinações completas
+              if (avgPrice < itemPrice / 2) {
+                console.warn(`[submitCartAction] Alternatives parecem ser voos individuais para round-trip. Pulando validação.`);
+                // Não valida neste caso, pois não faz sentido comparar ida+volta com voos individuais
+              } else {
+                // Os alternatives parecem ser combinações completas
+                const lowestAlternativePrice = Math.min(...allAlternativePrices);
+                if (itemPrice > lowestAlternativePrice && !item.justification) {
+                  return {
+                    success: false,
+                    error: `Justificativa obrigatória para o voo "${item.origin} → ${item.destination}" (R$ ${itemPrice.toFixed(2)}), pois não é a opção mais barata disponível (menor: R$ ${lowestAlternativePrice.toFixed(2)}).`,
+                  };
+                }
+              }
+            }
           }
         }
       } else {
-        // Para hotéis, carros, e voos one-way, mantém validação tradicional
-        const allPrices = cartItems.map((ci) => ci.selectedOption?.price || 0);
-        const lowestPrice = Math.min(...allPrices);
+        // Para hotéis, carros, e voos one-way, valida contra o menor preço do MESMO TIPO
+        // Filtra apenas itens do mesmo tipo para comparação justa
+        const sameTypeItems = cartItems.filter(ci => ci.type === item.type);
+        const sameTypePrices = sameTypeItems.map((ci) => ci.selectedOption?.price || 0).filter(p => p > 0);
         
-        if (itemPrice > lowestPrice && !item.justification) {
-          return {
-            success: false,
-            error: `Justificativa obrigatória para o item "${item.destination}" pois não é a opção mais barata.`,
-          };
+        if (sameTypePrices.length > 0) {
+          const lowestPriceForType = Math.min(...sameTypePrices);
+          
+          if (itemPrice > lowestPriceForType && !item.justification) {
+            const itemLabel = item.type === 'hotel' ? 'hotel' : item.type === 'car' ? 'carro' : 'voo';
+            return {
+              success: false,
+              error: `Justificativa obrigatória para o ${itemLabel} "${item.destination}" (R$ ${itemPrice.toFixed(2)}), pois não é a opção mais barata (menor: R$ ${lowestPriceForType.toFixed(2)}).`,
+            };
+          }
         }
       }
     }

@@ -68,6 +68,10 @@ function TravelRequestForm() {
   const [costCenter, setCostCenter] = useState("")
   const [reason, setReason] = useState("")
   const [justification, setJustification] = useState("")
+  const [outboundJustification, setOutboundJustification] = useState("") // Justificativa para voo de ida
+  const [returnJustification, setReturnJustification] = useState("") // Justificativa para voo de volta
+  const [hotelJustification, setHotelJustification] = useState("") // Justificativa para hotel
+  const [carJustification, setCarJustification] = useState("") // Justificativa para carro
 
   // Estados de dados e interface
   const [options, setOptions] = useState<TravelOption[]>([])
@@ -108,9 +112,26 @@ function TravelRequestForm() {
     : null
   const bestCombinedPrice = searchStatistics?.bestCombinedPrice || null
   
-  // Determina se justificativa é necessária
+  // Calcula preços mínimos por categoria
+  const outboundOptions = options.filter(o => o.legType === "outbound")
+  const returnOptions = options.filter(o => o.legType === "return")
+  const lowestOutboundPrice = findLowestPrice(outboundOptions)
+  const lowestReturnPrice = findLowestPrice(returnOptions)
+  
+  // Determina se justificativa é necessária por categoria
+  const outboundNeedsJustification = !!(outboundOption && lowestOutboundPrice !== null && (outboundOption.price || 0) > lowestOutboundPrice)
+  const returnNeedsJustification = !!(returnOption && lowestReturnPrice !== null && (returnOption.price || 0) > lowestReturnPrice)
+  
+  // Para hotéis e carros (opção única)
+  const selectedOption = options.find(o => o.id === selectedOptionId)
+  const hotelNeedsJustification = type === "hotel" && selectedOption && lowestPrice !== null && (selectedOption.price || 0) > lowestPrice
+  const carNeedsJustification = type === "car" && selectedOption && lowestPrice !== null && (selectedOption.price || 0) > lowestPrice
+  
+  // Determina se justificativa é necessária (lógica legada para outros tipos)
   const needsJustification = type === "flight" && tripMode === "round-trip" && totalSelectedPrice !== null && bestCombinedPrice !== null
     ? totalSelectedPrice > bestCombinedPrice
+    : type === "hotel" ? hotelNeedsJustification
+    : type === "car" ? carNeedsJustification
     : isJustificationRequired(options.find(o => o.id === selectedOptionId)?.price, lowestPrice)
 
   const handleTypeChange = (newType: string) => {
@@ -121,6 +142,10 @@ function TravelRequestForm() {
     setCostCenter("")
     setReason("")
     setJustification("")
+    setOutboundJustification("")
+    setReturnJustification("")
+    setHotelJustification("")
+    setCarJustification("")
     setOutboundPage(1)
     setReturnPage(1)
   }
@@ -307,6 +332,19 @@ function TravelRequestForm() {
       return
     }
 
+    // Monta justificativa consolidada
+    let consolidatedJustification = justification || null
+    if (type === "flight" && tripMode === "round-trip" && (outboundJustification || returnJustification)) {
+      const parts = []
+      if (outboundJustification) parts.push(`IDA: ${outboundJustification}`)
+      if (returnJustification) parts.push(`VOLTA: ${returnJustification}`)
+      consolidatedJustification = parts.join(" | ")
+    } else if (type === "hotel" && hotelJustification) {
+      consolidatedJustification = hotelJustification
+    } else if (type === "car" && carJustification) {
+      consolidatedJustification = carJustification
+    }
+    
     const newItem: CartItem = {
       type,
       origin: type === "flight" ? origin : null,
@@ -315,7 +353,7 @@ function TravelRequestForm() {
       returnDate,
       costCenter,
       reason,
-      justification: justification || null,
+      justification: consolidatedJustification,
       selectedOption: {
         ...finalOption,
         id: finalOption.id,
@@ -382,9 +420,12 @@ function TravelRequestForm() {
     setReturnDate("")
     setReason("")
     setJustification("")
+    setOutboundJustification("")
+    setReturnJustification("")
+    setHotelJustification("")
+    setCarJustification("")
     setOutboundPage(1)
     setReturnPage(1)
-    setReason("")
   }
 
   const handleRemoveFromCart = (index: number) => {
@@ -571,9 +612,10 @@ function TravelRequestForm() {
         {options.length > 0 && (
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Resultados Encontrados ({options.length})</CardTitle>
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle>Resultados Encontrados ({options.length})</CardTitle>
+                  <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -585,6 +627,7 @@ function TravelRequestForm() {
                   </Button>
                   <p className="text-xs text-muted-foreground">Exibindo {Math.min(visibleCount, options.length)} de {options.length}</p>
                 </div>
+              </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -826,10 +869,12 @@ function TravelRequestForm() {
                 <div className="flex gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                   <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-medium text-amber-900">Justificativa Obrigatória</p>
+                    <p className="font-medium text-amber-900">
+                      {type === "hotel" ? "🏨" : type === "car" ? "🚗" : "✈️"} {type === "hotel" ? "Hotel" : type === "car" ? "Carro" : "Opção"} não é o mais barato
+                    </p>
                     <p className="text-sm text-amber-800 mt-1">
-                      Você escolheu uma opção por R$ {options.find(o => o.id === selectedOptionId)?.price.toLocaleString("pt-BR")} quando existe uma opção mais barata por R$ {lowestPrice?.toLocaleString("pt-BR")}. 
-                      Por favor, justifique por que escolheu essa opção mais cara.
+                      Você escolheu {type === "hotel" ? "um hotel" : type === "car" ? "um carro" : "uma opção"} por R$ {options.find(o => o.id === selectedOptionId)?.price.toLocaleString("pt-BR")}, mas existe uma opção mais barata por R$ {lowestPrice?.toLocaleString("pt-BR")}.
+                      <strong> Justificativa obrigatória.</strong>
                     </p>
                   </div>
                 </div>
@@ -850,17 +895,59 @@ function TravelRequestForm() {
               </div>
 
               {/* Campo de justificativa (visível apenas se obrigatório) */}
-              {needsJustification && (
+              {needsJustification && type === "hotel" && (
+                <div className="space-y-2 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                  <Label htmlFor="hotel-justification">
+                    🏨 Justificativa para Hotel Mais Caro
+                    <span className="text-red-500 ml-1">*</span>
+                  </Label>
+                  <Textarea
+                    id="hotel-justification"
+                    value={hotelJustification}
+                    onChange={(e) => setHotelJustification(e.target.value)}
+                    placeholder="Explique por que escolheu este hotel (ex: localização melhor, mais próximo do evento, comodidades necessárias, avaliações, etc.)..."
+                    rows={3}
+                    className="resize-none"
+                    required
+                  />
+                  <p className="text-xs text-purple-600 mt-1">
+                    Diferença de R$ {((selectedOption?.price || 0) - (lowestPrice || 0)).toLocaleString("pt-BR")}
+                  </p>
+                </div>
+              )}
+              
+              {needsJustification && type === "car" && (
+                <div className="space-y-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <Label htmlFor="car-justification">
+                    🚗 Justificativa para Carro Mais Caro
+                    <span className="text-red-500 ml-1">*</span>
+                  </Label>
+                  <Textarea
+                    id="car-justification"
+                    value={carJustification}
+                    onChange={(e) => setCarJustification(e.target.value)}
+                    placeholder="Explique por que escolheu este veículo (ex: categoria superior necessária, espaço para bagagem, conforto, segurança, etc.)..."
+                    rows={3}
+                    className="resize-none"
+                    required
+                  />
+                  <p className="text-xs text-orange-600 mt-1">
+                    Diferença de R$ {((selectedOption?.price || 0) - (lowestPrice || 0)).toLocaleString("pt-BR")}
+                  </p>
+                </div>
+              )}
+              
+              {needsJustification && type === "flight" && tripMode === "one-way" && (
                 <div className="space-y-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <Label htmlFor="justification">
-                    Justificativa para Opção Mais Cara
+                    ✈️ Justificativa para Voo Mais Caro
                     <span className="text-red-500 ml-1">*</span>
                   </Label>
                   <Textarea
                     id="justification"
                     value={justification}
                     onChange={(e) => setJustification(e.target.value)}
-                    placeholder="Explique por que escolheu uma opção mais cara (ex: horário melhor, conexões diretas, comodidade, etc.)..."
+                    placeholder="Explique por que escolheu este voo (ex: horário melhor, voo direto, menos conexões, etc.)..."
                     rows={3}
                     className="resize-none"
                     required
@@ -872,7 +959,7 @@ function TravelRequestForm() {
               <div className="flex gap-4 pt-2">
                 <Button 
                   onClick={handleAddToCart} 
-                  disabled={isSubmitting || !reason || (needsJustification && !justification)} 
+                  disabled={isSubmitting || !reason || (hotelNeedsJustification && !hotelJustification) || (carNeedsJustification && !carJustification) || (needsJustification && type === "flight" && tripMode === "one-way" && !justification)} 
                   className="flex-1 bg-blue-500 hover:bg-blue-600"
                 >
                   <Plus className="w-4 h-4 mr-2" />
@@ -921,15 +1008,28 @@ function TravelRequestForm() {
 
               {outboundOption && returnOption && (
                 <>
-                  {/* Aviso se combinação não for a mais barata */}
-                  {totalSelectedPrice !== null && bestCombinedPrice !== null && totalSelectedPrice > bestCombinedPrice && (
+                  {/* Avisos individuais para ida e volta */}
+                  {outboundNeedsJustification && (
                     <div className="flex gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                       <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="font-medium text-amber-900">Justificativa Obrigatória</p>
+                        <p className="font-medium text-amber-900">⚠️ Voo de IDA não é o mais barato</p>
                         <p className="text-sm text-amber-800 mt-1">
-                          O custo total dos voos selecionados (R$ {totalSelectedPrice.toLocaleString("pt-BR")}) é maior que a melhor combinação disponível (R$ {bestCombinedPrice.toLocaleString("pt-BR")}). 
-                          Por favor, justifique por que escolheu essas opções.
+                          Você escolheu um voo de ida por R$ {outboundOption.price.toLocaleString("pt-BR")}, mas existe uma opção mais barata por R$ {lowestOutboundPrice?.toLocaleString("pt-BR")}.
+                          <strong> Justificativa obrigatória.</strong>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {returnNeedsJustification && (
+                    <div className="flex gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-amber-900">⚠️ Voo de VOLTA não é o mais barato</p>
+                        <p className="text-sm text-amber-800 mt-1">
+                          Você escolheu um voo de volta por R$ {returnOption.price.toLocaleString("pt-BR")}, mas existe uma opção mais barata por R$ {lowestReturnPrice?.toLocaleString("pt-BR")}.
+                          <strong> Justificativa obrigatória.</strong>
                         </p>
                       </div>
                     </div>
@@ -938,7 +1038,7 @@ function TravelRequestForm() {
                   <div className="space-y-2">
                     <Label>
                       Motivo da Solicitação
-                      {needsJustification && <span className="text-red-500 ml-1">*</span>}
+                      {(outboundNeedsJustification || returnNeedsJustification) && <span className="text-red-500 ml-1">*</span>}
                     </Label>
                     <Textarea 
                       value={reason} 
@@ -949,30 +1049,54 @@ function TravelRequestForm() {
                     />
                   </div>
 
-                  {/* Campo de justificativa (visível apenas se obrigatório) */}
-                  {needsJustification && (
+                  {/* Campo de justificativa para voo de IDA */}
+                  {outboundNeedsJustification && (
                     <div className="space-y-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <Label htmlFor="justification-round">
-                        Justificativa para Opção Mais Cara
+                      <Label htmlFor="outbound-justification">
+                        ✈️ Justificativa para Voo de IDA Mais Caro
                         <span className="text-red-500 ml-1">*</span>
                       </Label>
                       <Textarea
-                        id="justification-round"
-                        value={justification}
-                        onChange={(e) => setJustification(e.target.value)}
-                        placeholder="Explique por que escolheu opções mais caras (ex: horários melhores, menos conexões, comodidade, etc.)..."
-                        rows={3}
+                        id="outbound-justification"
+                        value={outboundJustification}
+                        onChange={(e) => setOutboundJustification(e.target.value)}
+                        placeholder="Explique por que escolheu este voo de ida (ex: horário melhor, voo direto, menos conexões, etc.)..."
+                        rows={2}
                         className="resize-none"
                         required
                       />
-                      <p className="text-xs text-blue-600 mt-1">Este campo é obrigatório para opções que não são as mais baratas disponíveis.</p>
+                      <p className="text-xs text-blue-600 mt-1">
+                        Diferença de R$ {((outboundOption.price || 0) - (lowestOutboundPrice || 0)).toLocaleString("pt-BR")}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Campo de justificativa para voo de VOLTA */}
+                  {returnNeedsJustification && (
+                    <div className="space-y-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <Label htmlFor="return-justification">
+                        ✈️ Justificativa para Voo de VOLTA Mais Caro
+                        <span className="text-red-500 ml-1">*</span>
+                      </Label>
+                      <Textarea
+                        id="return-justification"
+                        value={returnJustification}
+                        onChange={(e) => setReturnJustification(e.target.value)}
+                        placeholder="Explique por que escolheu este voo de volta (ex: horário melhor, voo direto, menos conexões, etc.)..."
+                        rows={2}
+                        className="resize-none"
+                        required
+                      />
+                      <p className="text-xs text-green-600 mt-1">
+                        Diferença de R$ {((returnOption.price || 0) - (lowestReturnPrice || 0)).toLocaleString("pt-BR")}
+                      </p>
                     </div>
                   )}
 
                   <div className="flex gap-4 pt-2">
                     <Button 
                       onClick={handleAddToCart} 
-                      disabled={isSubmitting || !reason || (needsJustification && !justification)} 
+                      disabled={isSubmitting || !reason || (outboundNeedsJustification && !outboundJustification) || (returnNeedsJustification && !returnJustification)} 
                       className="flex-1 bg-green-600 hover:bg-green-700"
                     >
                       <Plus className="w-4 h-4 mr-2" />
