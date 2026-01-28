@@ -175,7 +175,7 @@ export default function HomePage() {
       {/* Direitos e Desenvolvimento */}
       <div className="flex flex-col items-center gap-1 sm:items-end">
         <p className="text-xs text-muted-foreground text-center sm:text-right">
-          © 2026 Corporate Travel Platform. Todos os direitos reservados.
+          © 2026 Soluções Serviços Terceirizadas. Todos os direitos reservados.
         </p>
         <p className="text-xs text-muted-foreground">
           Desenvolvido pelo time de <strong>Tecnologia da Informação</strong>
