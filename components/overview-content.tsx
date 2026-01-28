@@ -46,7 +46,7 @@ interface TravelRequest {
   origin?: string | null
   departureDate: Date | string
   returnDate: Date | string
-  status: "pending" | "approved" | "rejected"
+  status: "pending" | "approved" | "rejected" | "purchased"
   reason: string
   selectedOption: any
   createdAt: Date | string
@@ -69,16 +69,17 @@ const CHART_COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#E
 
 const STATUS_COLORS = {
   pending: "bg-amber-100 text-amber-800",
-  approved: "bg-emerald-100 text-emerald-800",
+  approved: "bg-teal-100 text-teal-800",
+  purchased: "bg-emerald-100 text-emerald-800",
   rejected: "bg-red-100 text-red-800",
 }
 
 export function OverviewContent({ requests, users }: { requests: TravelRequest[]; users: User[] }) {
-  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "approved" | "rejected">("all")
+  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "approved" | "rejected" | "purchased">("all")
   const [filterType, setFilterType] = useState<"all" | "flight" | "hotel" | "car">("all")
   const [filterUser, setFilterUser] = useState<string>("all")
   const [searchDestination, setSearchDestination] = useState("")
-  const [tableFilterStatus, setTableFilterStatus] = useState<"all" | "pending" | "approved" | "rejected">("all")
+  const [tableFilterStatus, setTableFilterStatus] = useState<"all" | "pending" | "approved" | "rejected" | "purchased">("all")
   const [tableFilterType, setTableFilterType] = useState<"all" | "flight" | "hotel" | "car">("all")
   const [tableSearchUser, setTableSearchUser] = useState("")
   const [sortBy, setSortBy] = useState<"date" | "cost">("date")
@@ -101,11 +102,13 @@ export function OverviewContent({ requests, users }: { requests: TravelRequest[]
   // Calcular estatísticas
   const stats = useMemo(() => {
     const approved = filteredRequests.filter((r) => r.status === "approved")
+    const purchased = filteredRequests.filter((r) => r.status === "purchased")
     const pending = filteredRequests.filter((r) => r.status === "pending")
     const rejected = filteredRequests.filter((r) => r.status === "rejected")
 
     const totalCost = approved.reduce((acc, curr) => acc + (Number(curr.selectedOption?.price) || 0), 0)
-    const avgCost = approved.length > 0 ? totalCost / approved.length : 0
+    const purchasedCost = purchased.reduce((acc, curr) => acc + (Number(curr.selectedOption?.price) || 0), 0)
+    const avgCost = (approved.length + purchased.length) > 0 ? (totalCost + purchasedCost) / (approved.length + purchased.length) : 0
 
     const allCost = filteredRequests.reduce((acc, curr) => acc + (Number(curr.selectedOption?.price) || 0), 0)
 
@@ -113,8 +116,10 @@ export function OverviewContent({ requests, users }: { requests: TravelRequest[]
       total: filteredRequests.length,
       pending: pending.length,
       approved: approved.length,
+      purchased: purchased.length,
       rejected: rejected.length,
       totalCost,
+      purchasedCost,
       avgCost,
       allCost,
     }
@@ -149,6 +154,7 @@ export function OverviewContent({ requests, users }: { requests: TravelRequest[]
     return [
       { name: "Pendente", value: stats.pending },
       { name: "Aprovado", value: stats.approved },
+      { name: "Comprado", value: stats.purchased },
       { name: "Rejeitado", value: stats.rejected },
     ].filter((item) => item.value > 0)
   }, [stats])
@@ -229,6 +235,7 @@ export function OverviewContent({ requests, users }: { requests: TravelRequest[]
                   <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="pending">Pendente</SelectItem>
                   <SelectItem value="approved">Aprovado</SelectItem>
+                  <SelectItem value="purchased">Comprado</SelectItem>
                   <SelectItem value="rejected">Rejeitado</SelectItem>
                 </SelectContent>
               </Select>
@@ -501,6 +508,7 @@ export function OverviewContent({ requests, users }: { requests: TravelRequest[]
                   <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="pending">Pendente</SelectItem>
                   <SelectItem value="approved">Aprovado</SelectItem>
+                  <SelectItem value="purchased">Comprado</SelectItem>
                   <SelectItem value="rejected">Rejeitado</SelectItem>
                 </SelectContent>
               </Select>

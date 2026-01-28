@@ -48,6 +48,7 @@ export function DashboardContent() {
   // Stats para o usuário atual
   const myPending = myRequests.filter((r) => r.status === "pending").length
   const myApproved = myRequests.filter((r) => r.status === "approved").length
+  const myPurchased = myRequests.filter((r) => r.status === "purchased").length
   const myRejected = myRequests.filter((r) => r.status === "rejected").length
 
   // Próximas viagens (solicitações aprovadas com datas futuras)
@@ -120,10 +121,20 @@ export function DashboardContent() {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Aprovado</CardDescription>
-            <CardTitle className="text-3xl text-emerald-600">{myApproved}</CardTitle>
+            <CardTitle className="text-3xl text-teal-600">{myApproved}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-xs text-muted-foreground">Pronto para viajar</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Comprado</CardDescription>
+            <CardTitle className="text-3xl text-emerald-600">{myPurchased}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground">Passagens adquiridas</p>
           </CardContent>
         </Card>
 

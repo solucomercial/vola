@@ -126,10 +126,11 @@ export function RequestsContent() {
   // Calcular métricas
   const totalRequests = myRequests.length
   const approvedRequests = myRequests.filter(r => r.status === "approved").length
+  const purchasedRequests = myRequests.filter(r => r.status === "purchased").length
   const rejectedRequests = myRequests.filter(r => r.status === "rejected").length
   const pendingRequests = myRequests.filter(r => r.status === "pending").length
   const totalSpent = myRequests
-    .filter(r => r.status === "approved")
+    .filter(r => r.status === "approved" || r.status === "purchased")
     .reduce((sum, r) => sum + r.selectedOption.price, 0)
   const approvalRate = totalRequests > 0 ? Math.round((approvedRequests / totalRequests) * 100) : 0
 
@@ -169,15 +170,15 @@ export function RequestsContent() {
             </Card>
 
             {/* Approved Requests */}
-            <Card className="border-l-4 border-l-emerald-500">
+            <Card className="border-l-4 border-l-teal-500">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Aprovadas</p>
-                    <p className="text-3xl font-bold text-emerald-600 mt-2">{approvedRequests}</p>
+                    <p className="text-3xl font-bold text-teal-600 mt-2">{approvedRequests}</p>
                   </div>
-                  <div className="h-12 w-12 rounded-lg bg-emerald-100 flex items-center justify-center">
-                    <CheckCircle className="h-6 w-6 text-emerald-600" />
+                  <div className="h-12 w-12 rounded-lg bg-teal-100 flex items-center justify-center">
+                    <CheckCircle className="h-6 w-6 text-teal-600" />
                   </div>
                 </div>
               </CardContent>
@@ -193,6 +194,21 @@ export function RequestsContent() {
                   </div>
                   <div className="h-12 w-12 rounded-lg bg-amber-100 flex items-center justify-center">
                     <Clock className="h-6 w-6 text-amber-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Purchased Requests */}
+            <Card className="border-l-4 border-l-emerald-500">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Compradas</p>
+                    <p className="text-3xl font-bold text-emerald-600 mt-2">{purchasedRequests}</p>
+                  </div>
+                  <div className="h-12 w-12 rounded-lg bg-emerald-100 flex items-center justify-center">
+                    <CheckCircle className="h-6 w-6 text-emerald-600" />
                   </div>
                 </div>
               </CardContent>
@@ -293,8 +309,8 @@ export function RequestsContent() {
           <div className="space-y-4">
             {filteredRequests.map((request) => {
               const statusColorMap = {
-                approved: { border: "border-l-emerald-500", bg: "from-emerald-50 to-emerald-100", text: "text-emerald-600", iconBg: "bg-emerald-100" },
-                purchased: { border: "border-l-teal-500", bg: "from-teal-50 to-teal-100", text: "text-teal-600", iconBg: "bg-teal-100" },
+                approved: { border: "border-l-teal-500", bg: "from-teal-50 to-teal-100", text: "text-teal-600", iconBg: "bg-teal-100" },
+                purchased: { border: "border-l-emerald-500", bg: "from-emerald-50 to-emerald-100", text: "text-emerald-600", iconBg: "bg-emerald-100" },
                 pending: { border: "border-l-amber-500", bg: "from-amber-50 to-amber-100", text: "text-amber-600", iconBg: "bg-amber-100" },
                 rejected: { border: "border-l-red-500", bg: "from-red-50 to-red-100", text: "text-red-600", iconBg: "bg-red-100" },
               }
