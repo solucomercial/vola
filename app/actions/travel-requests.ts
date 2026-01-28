@@ -27,92 +27,100 @@ async function sendApprovalEmail(approverEmail: string, requesterName: string, r
 
     const totalPrice = cartItems.reduce((sum, item) => sum + (item.selectedOption.price || 0), 0);
 
-    const htmlContent = `
+  const htmlContent = `
       <!DOCTYPE html>
-      <html>
+      <html lang="pt-br">
         <head>
           <meta charset="utf-8" />
           <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif; }
-            .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 32px; text-align: center; }
-            .header h1 { margin: 0; font-size: 24px; font-weight: 600; }
-            .content { padding: 32px; }
-            .section { margin: 24px 0; }
-            .section-title { font-size: 16px; font-weight: 600; color: #1f2937; margin-bottom: 12px; }
-            .info-box { background: #f3f4f6; border-left: 4px solid #667eea; padding: 16px; border-radius: 4px; margin: 12px 0; }
-            .info-box p { margin: 0; color: #374151; font-size: 14px; }
-            .info-box strong { color: #1f2937; }
-            table { width: 100%; border-collapse: collapse; margin: 12px 0; }
-            table th { background: #f9fafb; padding: 12px; text-align: left; font-weight: 600; color: #374151; font-size: 14px; border-bottom: 2px solid #e5e7eb; }
-            .total-row { background: #f0f4ff; font-weight: 600; color: #667eea; padding: 12px; text-align: right; }
-            .button-group { display: flex; gap: 12px; margin-top: 24px; justify-content: center; }
-            .button { display: inline-block; padding: 12px 32px; border-radius: 6px; font-weight: 600; text-decoration: none; font-size: 14px; }
-            .button-approve { background: #10b981; color: white; }
-            .button-approve:hover { background: #059669; }
-            .button-reject { background: #ef4444; color: white; }
-            .button-reject:hover { background: #dc2626; }
-            .footer { background: #f9fafb; padding: 24px; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; }
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7fa; margin: 0; padding: 0; }
+            .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 4px; overflow: hidden; border: 1px solid #e1e4e8; }
+            /* Header com a cor primária do projeto Vola */
+            .header { background-color: #3B5998; color: white; padding: 40px 32px; text-align: center; }
+            .header h1 { margin: 0; font-size: 22px; font-weight: 500; letter-spacing: 0.5px; }
+            .content { padding: 40px 32px; line-height: 1.6; }
+            .greeting { font-size: 18px; font-weight: 600; color: #1a202c; margin-bottom: 16px; }
+            .intro-text { color: #4a5568; font-size: 15px; margin-bottom: 32px; }
+            .section-title { font-size: 14px; font-weight: 700; color: #3B5998; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; border-bottom: 1px solid #edf2f7; padding-bottom: 8px; }
+            
+            /* Tabela de Itens */
+            table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+            table th { background: #f8fafc; padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: #718096; border-bottom: 2px solid #edf2f7; }
+            table td { padding: 12px; font-size: 14px; color: #2d3748; border-bottom: 1px solid #edf2f7; }
+            .total-row { background: #f1f5f9; font-weight: 700; color: #3B5998; }
+            
+            /* Box de Justificativa */
+            .info-box { background: #ffffff; border: 1px solid #e2e8f0; border-left: 4px solid #3B5998; padding: 16px; border-radius: 0 4px 4px 0; margin: 12px 0; }
+            .info-box p { margin: 0; color: #4a5568; font-size: 14px; }
+            
+            /* Botões de Ação */
+            .button-group { display: flex; gap: 16px; margin: 40px 0 20px; justify-content: center; }
+            .button { cursor: pointer; display: inline-block; padding: 12px 28px; border-radius: 4px; font-weight: 600; text-decoration: none; font-size: 14px; transition: background 0.2s; }
+            .button-approve { background-color: #3B5998; color: white !important; }
+            .button-reject { background-color: transparent; color: #e53e3e !important; border: 1px solid #e53e3e; }
+            
+            /* Rodapé Institucional */
+            .footer { background: #f8fafc; padding: 32px; text-align: center; font-size: 12px; color: #718096; border-top: 1px solid #edf2f7; }
+            .footer a { color: #3B5998; text-decoration: none; }
           </style>
         </head>
         <body>
           <div class="container">
             <div class="header">
-              <h1>✈️ Nova Solicitação de Viagem</h1>
+              <h1>SOLICITAÇÃO DE VIAGEM CORPORATIVA</h1>
             </div>
             <div class="content">
-              <div class="section">
-                <p style="margin: 0; color: #374151; font-size: 16px;">Olá,</p>
-                <p style="margin: 12px 0; color: #6b7280;">Uma nova solicitação de viagem foi submetida por <strong>${requesterName}</strong> e aguarda sua aprovação.</p>
-              </div>
+              <p class="greeting">Prezado(a) Gestor(a),</p>
+              <p class="intro-text">
+                Notificamos que uma nova solicitação de viagem foi registrada por <strong>${requesterName}</strong> e requer sua análise técnica e aprovação orçamentária para prosseguimento.
+              </p>
 
-              <div class="section">
-                <div class="section-title">Itens Solicitados</div>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Trajeto/Destino</th>
-                      <th>Data</th>
-                      <th>Valor</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${itemsSummary}
-                    <tr class="total-row">
-                      <td colspan="2">TOTAL</td>
-                      <td>R$ ${totalPrice.toLocaleString('pt-BR')}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+              <div class="section-title">Resumo do Itinerário</div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>DESTINO / SERVIÇO</th>
+                    <th>DATA</th>
+                    <th style="text-align: right;">VALOR EST.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${itemsSummary}
+                  <tr class="total-row">
+                    <td colspan="2">VALOR TOTAL DA SOLICITAÇÃO</td>
+                    <td style="text-align: right;">R$ ${totalPrice.toLocaleString('pt-BR')}</td>
+                  </tr>
+                </tbody>
+              </table>
 
-              <div class="section">
-                <div class="section-title">Motivos das Solicitações</div>
-                ${cartItems.map((item, idx) => `
-                  <div class="info-box">
-                    <p><strong>Item ${idx + 1}:</strong> ${item.reason}</p>
-                  </div>
-                `).join('')}
-              </div>
+              <div class="section-title">Justificativa das Atividades</div>
+              ${cartItems.map((item, idx) => `
+                <div class="info-box">
+                  <p><strong>Item ${idx + 1}:</strong> ${item.reason}</p>
+                </div>
+              `).join('')}
 
-              <div class="section" style="text-align: center;">
-                <p style="margin: 0; color: #6b7280; font-size: 14px; margin-bottom: 20px;">Por favor, revise os detalhes e tome uma decisão:</p>
+              <div style="margin-top: 40px; text-align: center;">
+                <p style="color: #718096; font-size: 13px;">Selecione uma das opções abaixo para processar a solicitação:</p>
                 <div class="button-group">
-                  <a href="${approveUrl}" class="button button-approve">✓ Aprovar</a>
-                  <a href="${rejectUrl}" class="button button-reject">✗ Rejeitar</a>
+                  <a href="${approveUrl}" class="button button-approve">APROVAR SOLICITAÇÃO</a>
+                  <a href="${rejectUrl}" class="button button-reject">REJEITAR</a>
                 </div>
               </div>
 
-              <div class="section" style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 4px; margin-top: 20px;">
-                <p style="margin: 0; color: #92400e; font-size: 14px;">
-                  <strong>⚠️ Nota:</strong> Os links acima expiram em 30 dias. Acesse o painel de análise para obter mais detalhes.
+              <div style="background: #fffaf0; border: 1px solid #feebc8; padding: 12px; border-radius: 4px; margin-top: 30px;">
+                <p style="margin: 0; color: #744210; font-size: 12px; text-align: center;">
+                  <strong>Aviso:</strong> Esta solicitação expira em 30 dias. Para detalhes completos, acesse o módulo de auditoria no sistema Vola.
                 </p>
               </div>
             </div>
 
             <div class="footer">
-              <p style="margin: 0; margin-bottom: 8px;">Este é um email automático. Por favor, não responda.</p>
-              <p style="margin: 0;">Sistema de Gestão de Viagens © 2026</p>
+              <p style="margin-bottom: 8px; font-weight: 600;">Soluções Serviços Terceirizados</p>
+              <p style="margin: 0;">Desenvolvido pelo time de <strong>Tecnologia da Informação</strong></p>
+              <p style="margin-top: 16px;">
+                Este é um e-mail automático enviado pela plataforma <a href="https://solucoesterceirizadas.com.br/">Vola</a>.
+              </p>
             </div>
           </div>
         </body>
