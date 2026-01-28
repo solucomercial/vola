@@ -385,6 +385,12 @@ function TravelRequestForm() {
       return
     }
 
+    if (!currentUser) {
+      toast.error("Erro de autenticação", { description: "Usuário não identificado" })
+      router.push("/login")
+      return
+    }
+
     setIsSubmitting(true)
     try {
       const result = await submitCartAction(cartItems, currentUser.id, currentUser.name)

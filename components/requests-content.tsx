@@ -92,13 +92,15 @@ export function RequestsContent() {
 
   useEffect(() => {
     const loadRequests = async () => {
+      if (!currentUser) return
+      
       setIsLoading(true)
       const requests = await getUserRequestsAction(currentUser.id)
       setMyRequests(requests as TravelRequest[])
       setIsLoading(false)
     }
     loadRequests()
-  }, [currentUser.id])
+  }, [currentUser?.id, currentUser])
 
   const filteredRequests = myRequests.filter((request) => {
     const matchesSearch =

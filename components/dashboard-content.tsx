@@ -20,6 +20,8 @@ export function DashboardContent() {
 
   useEffect(() => {
     async function loadData() {
+      if (!currentUser) return
+      
       setLoading(true)
       try {
         // Buscar solicitações do usuário
@@ -41,7 +43,7 @@ export function DashboardContent() {
     }
 
     loadData()
-  }, [currentUser.id])
+  }, [currentUser?.id, currentUser])
 
   // Stats para o usuário atual
   const myPending = myRequests.filter((r) => r.status === "pending").length
@@ -58,7 +60,7 @@ export function DashboardContent() {
   // Solicitações recentes
   const recentRequests = myRequests.slice(0, 5)
 
-  const canApprove = currentUser.role === "approver" || currentUser.role === "admin"
+  const canApprove = currentUser && (currentUser.role === "approver" || currentUser.role === "admin")
 
   if (loading) {
     return (
@@ -82,7 +84,7 @@ export function DashboardContent() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Bem-vindo de volta, {currentUser.name.split(" ")[0]}</h1>
+          <h1 className="text-2xl font-bold text-foreground">Bem-vindo de volta, {currentUser?.name.split(" ")[0] || "Usuário"}</h1>
           <p className="text-muted-foreground">Aqui está uma visão geral das suas solicitações de viagem</p>
         </div>
         <Link href="/requests/new">

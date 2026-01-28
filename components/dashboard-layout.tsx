@@ -49,7 +49,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { currentUser, getUnreadNotificationsCount } = useApp()
 
-  const filteredNavigation = navigation.filter((item) => item.roles.includes(currentUser.role))
+  const filteredNavigation = currentUser ? navigation.filter((item) => item.roles.includes(currentUser.role)) : []
 
   useEffect(() => {
     const fetchUnreadCount = async () => {
@@ -57,7 +57,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       setUnreadCount(count)
     }
     fetchUnreadCount()
-  }, [currentUser.id, getUnreadNotificationsCount])
+  }, [currentUser?.id, getUnreadNotificationsCount])
 
   const handleLogout = async () => {
     try {
@@ -158,42 +158,44 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
           {/* User section */}
           <div className="border-t border-border p-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start gap-3 h-auto py-2">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                      {currentUser.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col items-start text-left flex-1 min-w-0">
-                    <span className="text-sm font-medium truncate w-full">{currentUser.name}</span>
-                    <Badge variant={getRoleBadgeVariant(currentUser.role)} className="text-xs mt-0.5">
-                      {getRoleLabel(currentUser.role)}
-                    </Badge>
-                  </div>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem disabled>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">{currentUser.name}</span>
-                    <span className="text-xs text-muted-foreground">{currentUser.email}</span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sair
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {currentUser && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="w-full justify-start gap-3 h-auto py-2">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                        {currentUser.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col items-start text-left flex-1 min-w-0">
+                      <span className="text-sm font-medium truncate w-full">{currentUser.name}</span>
+                      <Badge variant={getRoleBadgeVariant(currentUser.role)} className="text-xs mt-0.5">
+                        {getRoleLabel(currentUser.role)}
+                      </Badge>
+                    </div>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem disabled>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">{currentUser.name}</span>
+                      <span className="text-xs text-muted-foreground">{currentUser.email}</span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sair
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
       </aside>

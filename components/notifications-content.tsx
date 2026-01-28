@@ -32,6 +32,8 @@ export function NotificationsContent() {
 
   useEffect(() => {
     async function loadNotifications() {
+      if (!currentUser) return
+      
       setLoading(true)
       try {
         const data = await getNotificationsAction(currentUser.id)
@@ -44,7 +46,7 @@ export function NotificationsContent() {
     }
 
     loadNotifications()
-  }, [currentUser.id])
+  }, [currentUser?.id, currentUser])
 
   const filteredNotifications = notifications.filter((n) => {
     if (filter === "all") return true

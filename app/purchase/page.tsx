@@ -32,23 +32,32 @@ interface TravelRequest {
 
 export default function PurchasePage() {
   const router = useRouter()
-  const { currentUser } = useApp()
+  const { currentUser, loading } = useApp()
   const [requests, setRequests] = useState<TravelRequest[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   // Verifica permissão de acesso
   useEffect(() => {
-    if (currentUser.role !== "buyer" && currentUser.role !== "admin") {
-      toast.error("Acesso Negado", {
-        description: "Você não tem permissão para acessar esta página",
-      })
-      router.push("/dashboard")
+    if (!loading) {
+      if (!currentUser) {
+        router.push("/login")
+        return
+      }
+
+      if (currentUser.role !== "buyer" && currentUser.role !== "admin") {
+        toast.error("Acesso Negado", {
+          description: "Você não tem permissão para acessar esta página",
+        })
+        router.push("/dashboard")
+      }
     }
-  }, [currentUser, router])
+  }, [currentUser, loading, router])
 
   useEffect(() => {
-    loadRequests()
-  }, [])
+    if (!loading && currentUser && (currentUser.role === "buyer" || currentUser.role === "admin")) {
+      loadRequests()
+    }
+  }, [loading, currentUser])
 
   const loadRequests = async () => {
     setIsLoading(true)
