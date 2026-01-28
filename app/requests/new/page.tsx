@@ -126,6 +126,20 @@ function TravelRequestForm() {
   }
 
   const handleSearch = async () => {
+  // Adiciona validações para as datas
+  const today = new Date().toISOString().split('T')[0];
+
+  // Validação para a data de partida
+  if (new Date(departureDate) < new Date(today)) {
+    toast.error("Data de partida inválida", { description: "Não é permitido selecionar uma data anterior a hoje." });
+    return;
+  }
+
+  // Validação para a data de retorno
+  if (tripMode === "round-trip" && new Date(returnDate) <= new Date(departureDate)) {
+    toast.error("Data de retorno inválida", { description: "A data de retorno deve ser posterior à data de partida." });
+    return;
+  }
     // Validações básicas obrigatórias
     const isFlightOneWay = type === "flight" && tripMode === "one-way"
     

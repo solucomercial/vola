@@ -102,15 +102,6 @@ export default function LoginPage() {
               )}
             </Button>
           </form>
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-sm font-semibold text-blue-900 mb-2">Credenciais de teste:</p>
-            <div className="space-y-1 text-xs text-blue-800">
-              <p><strong>Solicitante:</strong> david@solucoesterceirizadas.com.br / senha123</p>
-              <p><strong>Aprovador:</strong> ademir@solucoesterceirizadas.com.br / senha123</p>
-              <p><strong>Comprador:</strong> cristiane@solucoesterceirizadas.com.br / senha123</p>
-              <p><strong>Admin:</strong> guilherme.machado@solucoesterceirizadas.com.br / senha123</p>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>
