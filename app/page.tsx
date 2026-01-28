@@ -29,7 +29,13 @@ export default function HomePage() {
       <section className="relative overflow-hidden bg-gradient-to-b from-primary/5 to-white py-10 lg:py-16">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl text-center">
-            <img src="/logo-solu-web.jpeg" alt="Soluções Serviços Terceirizados" className="mx-auto h-40 w-auto pb-4" />
+            <Link href="https://solucoesterceirizadas.com.br/" target="_blank">
+              <img 
+                src="/logo-solu-web.jpeg" 
+                alt="Soluções Serviços Terceirizados" 
+                className="mx-auto h-40 w-auto pb-4 transition-opacity hover:opacity-80" 
+              />
+            </Link>
             <h1 className="text-balance text-2xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
               Plataforma de Gestão de Viagens Corporativas
             </h1>
@@ -134,20 +140,50 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border bg-card py-12">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <div className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-white shadow-sm">
-                <Image src="/logo-solu-web.jpeg" alt="Soluções Serviços Terceirizados" width={40} height={40} />
-              </div>
-              <span className="text-sm font-semibold text-foreground">Soluções Serviços Terceirizados</span>
-            </div>
-            <p className="text-sm text-muted-foreground">© 2026 Corporate Travel Platform. All rights reserved.</p>
-          </div>
+{/* Footer */}
+<footer className="border-t border-border bg-card py-12">
+  <div className="container mx-auto px-4">
+    <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
+      {/* Logo e Link Institucional */}
+      <div className="flex items-center gap-2">
+        <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-white shadow-sm">
+          <Image src="/logo-solu-web.jpeg" alt="Soluções Serviços Terceirizados" width={40} height={40} />
         </div>
-      </footer>
+        <Link 
+          href="https://solucoesterceirizadas.com.br/" 
+          target="_blank" 
+          className="text-sm font-semibold text-foreground hover:underline"
+        >
+          Soluções Serviços Terceirizados
+        </Link>
+      </div>
+
+      {/* Suporte/Chamados */}
+      <div className="text-center sm:text-left">
+        <p className="text-sm text-muted-foreground">
+          Teve algum problema?{" "}
+          <Link 
+            href="https://interface-client.milvus.com.br/listagem?token=e9d416d91074f7d7c084c09070334f2d58294273c777425aa6ec5db3bb9f394452f68ea3a1db97e12655173d53856dc5efef24920e9195f20806913813f7a974246f847e42" 
+            target="_blank"
+            className="font-medium text-primary hover:underline"
+          >
+            Abra um chamado para o time de TI
+          </Link>
+        </p>
+      </div>
+
+      {/* Direitos e Desenvolvimento */}
+      <div className="flex flex-col items-center gap-1 sm:items-end">
+        <p className="text-xs text-muted-foreground text-center sm:text-right">
+          © 2026 Corporate Travel Platform. Todos os direitos reservados.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Desenvolvido pelo time de <strong>Tecnologia da Informação</strong>
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
     </div>
   )
 }
