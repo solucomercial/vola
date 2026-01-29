@@ -72,6 +72,7 @@ function TravelRequestForm() {
   const [returnJustification, setReturnJustification] = useState("") // Justificativa para voo de volta
   const [hotelJustification, setHotelJustification] = useState("") // Justificativa para hotel
   const [carJustification, setCarJustification] = useState("") // Justificativa para carro
+  const [hotelLocationReference, setHotelLocationReference] = useState("") // Referência de localização para hotel
 
   // Estados de dados e interface
   const [options, setOptions] = useState<TravelOption[]>([])
@@ -146,6 +147,7 @@ function TravelRequestForm() {
     setReturnJustification("")
     setHotelJustification("")
     setCarJustification("")
+    setHotelLocationReference("")
     setOutboundPage(1)
     setReturnPage(1)
   }
@@ -375,6 +377,7 @@ function TravelRequestForm() {
         reviewsCount: finalOption.reviewsCount,
         locationDetails: finalOption.locationDetails,
         hotelAmenities: finalOption.hotelAmenities,
+        locationReference: type === "hotel" ? hotelLocationReference : null, // Adiciona referência de localização para hotel
         statistics: searchStatistics, // Adiciona estatísticas ao selectedOption
       },
       alternatives: options
@@ -424,6 +427,7 @@ function TravelRequestForm() {
     setReturnJustification("")
     setHotelJustification("")
     setCarJustification("")
+    setHotelLocationReference("")
     setOutboundPage(1)
     setReturnPage(1)
   }
@@ -893,6 +897,26 @@ function TravelRequestForm() {
                   className="resize-none" 
                 />
               </div>
+
+              {/* Campo de referência de localização para hotel */}
+              {type === "hotel" && selectedOptionId && (
+                <div className="space-y-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <Label htmlFor="hotel-location-ref">
+                    📍 Local de Trabalho / Referência de Proximidade
+                  </Label>
+                  <Textarea
+                    id="hotel-location-ref"
+                    value={hotelLocationReference}
+                    onChange={(e) => setHotelLocationReference(e.target.value)}
+                    placeholder="Informe o endereço ou local onde você precisa estar (ex: Unidade Matriz, Endereço do Evento X)..."
+                    rows={2}
+                    className="resize-none bg-white"
+                  />
+                  <p className="text-[10px] text-blue-600 italic">
+                    Esta informação ajuda a compradora a validar se este hotel é a melhor opção logística.
+                  </p>
+                </div>
+              )}
 
               {/* Campo de justificativa (visível apenas se obrigatório) */}
               {needsJustification && type === "hotel" && (

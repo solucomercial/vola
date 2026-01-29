@@ -14,12 +14,16 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 // Função auxiliar para enviar email de aprovação
 async function sendApprovalEmail(approverEmail: string, requesterName: string, requestId: string, cartItems: any[]) {
   try {
-    const approveUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/approve?requestId=${requestId}&action=approve`;
-    const rejectUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/approve?requestId=${requestId}&action=reject`;
+    const approveUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://viagens.solucoesterceirizadas.cloud'}/api/approve?requestId=${requestId}&action=approve`;
+    const rejectUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://viagens.solucoesterceirizadas.cloud'}/api/approve?requestId=${requestId}&action=reject`;
 
     const itemsSummary = cartItems.map((item, idx) => `
       <tr style="border-bottom: 1px solid #e5e7eb;">
-        <td style="padding: 12px; text-align: left;">${idx + 1}. ${item.type === 'flight' ? `${item.origin} → ${item.destination}` : item.destination}</td>
+        <td style="padding: 12px; text-align: left;">
+          ${idx + 1}. ${item.type === 'flight' ? `${item.origin} → ${item.destination}` : item.destination}
+          ${item.selectedOption?.locationReference ? 
+            `<br/><span style="font-size: 11px; color: #666; margin-top: 4px; display: inline-block;">📍 Ref: ${item.selectedOption.locationReference}</span>` : ''}
+        </td>
         <td style="padding: 12px; text-align: center;">${new Date(item.departureDate).toLocaleDateString('pt-BR')}</td>
         <td style="padding: 12px; text-align: right;">R$ ${item.selectedOption.price.toLocaleString('pt-BR')}</td>
       </tr>
